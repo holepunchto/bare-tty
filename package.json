@@ -1,0 +1,35 @@
+{
+  "name": "@pearjs/tty",
+  "version": "1.0.0",
+  "description": "Native I/O tty stream for JavaScript",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "binding.c",
+    "binding.js",
+    "CMakeLists.txt",
+    "prebuilds"
+  ],
+  "scripts": {
+    "test": "standard && pear test.js",
+    "install": "pear-dev rebuild",
+    "prebuild": "pear-dev prebuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/holepunchto/pearjs-tty.git"
+  },
+  "author": "Holepunch",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/holepunchto/pearjs-tty/issues"
+  },
+  "homepage": "https://github.com/holepunchto/pearjs-tty#readme",
+  "dependencies": {
+    "streamx": "^2.13.2"
+  },
+  "devDependencies": {
+    "brittle": "^3.2.1",
+    "standard": "^17.0.0"
+  }
+}
