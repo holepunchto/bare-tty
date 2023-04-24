@@ -15,7 +15,6 @@ module.exports = exports = class TTY extends Duplex {
     this._req = slab.subarray(binding.sizeofTTY, binding.sizeofTTY + binding.sizeofWrite)
     this._buffer = slab.subarray(binding.sizeofTTY + binding.sizeofWrite)
 
-    this._readCallback = null
     this._writeCallback = null
     this._finalCallback = null
     this._destroyCallback = null
@@ -30,9 +29,9 @@ module.exports = exports = class TTY extends Duplex {
     )
   }
 
-  _read (cb) {
-    this._readCallback = cb
+  _open (cb) {
     binding.resume(this._handle)
+    cb(null)
   }
 
   _writev (datas, cb) {
@@ -48,13 +47,6 @@ module.exports = exports = class TTY extends Duplex {
   _destroy (cb) {
     this._destroyCallback = cb
     binding.close(this._handle)
-  }
-
-  _continueRead (err) {
-    if (this._readCallback === null) return
-    const cb = this._readCallback
-    this._readCallback = null
-    cb(err)
   }
 
   _continueWrite (err) {
@@ -84,8 +76,6 @@ module.exports = exports = class TTY extends Duplex {
   }
 
   _onread (read) {
-    if (read <= 0) this._continueRead()
-
     if (read === 0) {
       this.push(null)
       if (this._allowHalfOpen === false) this.end()
@@ -100,10 +90,7 @@ module.exports = exports = class TTY extends Duplex {
     const copy = Buffer.allocUnsafe(read)
     copy.set(this._buffer.subarray(0, read))
 
-    if (this.push(copy) === false && this.destroying === false) {
-      binding.pause(this._handle)
-      this._continueRead()
-    }
+    this.push(copy)
   }
 
   _onfinal (status) {
