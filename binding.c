@@ -341,6 +341,16 @@ pear_tty_close (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
+pear_tty_reset (js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  err = uv_tty_reset_mode();
+  assert(err == 0);
+
+  return NULL;
+}
+
+static js_value_t *
 pear_tty_set_mode (js_env_t *env, js_callback_info_t *info) {
   int err;
 
@@ -411,6 +421,11 @@ init (js_env_t *env, js_value_t *exports) {
     js_value_t *fn;
     js_create_function(env, "close", -1, pear_tty_close, NULL, &fn);
     js_set_named_property(env, exports, "close", fn);
+  }
+  {
+    js_value_t *fn;
+    js_create_function(env, "reset", -1, pear_tty_reset, NULL, &fn);
+    js_set_named_property(env, exports, "reset", fn);
   }
   {
     js_value_t *fn;

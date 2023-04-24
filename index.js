@@ -3,6 +3,8 @@ const binding = require('./binding')
 
 const DEFAULT_READ_BUFFER = 65536
 
+process.on('exit', () => binding.reset())
+
 module.exports = exports = class TTY extends Duplex {
   constructor (fd, { readBufferSize = DEFAULT_READ_BUFFER, allowHalfOpen = true } = {}) {
     super({ mapWritable })
