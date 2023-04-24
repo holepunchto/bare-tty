@@ -341,6 +341,36 @@ pear_tty_close (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
+pear_tty_set_mode (js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 2;
+  js_value_t *argv[2];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  pear_tty_t *self;
+  err = js_get_typedarray_info(env, argv[0], NULL, (void **) &self, NULL, NULL, NULL);
+  assert(err == 0);
+
+  uint32_t mode;
+  err = js_get_value_uint32(env, argv[1], &mode);
+  assert(err == 0);
+
+  err = uv_tty_set_mode(&self->tty, mode);
+
+  if (err < 0) {
+    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    return NULL;
+  }
+
+  return NULL;
+}
+
+static js_value_t *
 init (js_env_t *env, js_value_t *exports) {
   {
     js_value_t *val;
@@ -382,6 +412,28 @@ init (js_env_t *env, js_value_t *exports) {
     js_create_function(env, "close", -1, pear_tty_close, NULL, &fn);
     js_set_named_property(env, exports, "close", fn);
   }
+  {
+    js_value_t *fn;
+    js_create_function(env, "setMode", -1, pear_tty_set_mode, NULL, &fn);
+    js_set_named_property(env, exports, "setMode", fn);
+  }
+  {
+    js_value_t *val;
+    js_create_uint32(env, UV_TTY_MODE_NORMAL, &val);
+    js_set_named_property(env, exports, "MODE_NORMAL", val);
+  }
+  {
+    js_value_t *val;
+    js_create_uint32(env, UV_TTY_MODE_RAW, &val);
+    js_set_named_property(env, exports, "MODE_RAW", val);
+  }
+#ifndef _WIN32
+  {
+    js_value_t *val;
+    js_create_uint32(env, UV_TTY_MODE_IO, &val);
+    js_set_named_property(env, exports, "MODE_IO", val);
+  }
+#endif
 
   return exports;
 }
