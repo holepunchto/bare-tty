@@ -3,38 +3,28 @@ const binding = require('./binding')
 
 const DEFAULT_READ_BUFFER = 65536
 
-module.exports = class TtyPipe extends Duplex {
-  constructor (path, { readBufferSize = DEFAULT_READ_BUFFER, allowHalfOpen = true } = {}) {
+module.exports = class TTY extends Duplex {
+  constructor (fd, { readBufferSize = DEFAULT_READ_BUFFER, allowHalfOpen = true } = {}) {
     super({ mapWritable })
 
-    const slab = Buffer.alloc(binding.sizeofPipe + binding.sizeofWrite + readBufferSize)
+    const slab = Buffer.alloc(binding.sizeofTTY + binding.sizeofWrite + readBufferSize)
 
-    this._handle = slab.subarray(0, binding.sizeofPipe)
-    this._req = slab.subarray(binding.sizeofPipe, binding.sizeofPipe + binding.sizeofWrite)
-    this._buffer = slab.subarray(binding.sizeofPipe + binding.sizeofWrite)
+    this._handle = slab.subarray(0, binding.sizeofTTY)
+    this._req = slab.subarray(binding.sizeofTTY, binding.sizeofTTY + binding.sizeofWrite)
+    this._buffer = slab.subarray(binding.sizeofTTY + binding.sizeofWrite)
 
-    this._openCallback = null
     this._writeCallback = null
     this._finalCallback = null
     this._destroyCallback = null
 
-    this._connected = typeof path === 'number' ? 1 : 0 // unknown
     this._allowHalfOpen = allowHalfOpen
 
-    binding.init(this._handle, this._buffer, this,
-      this._onconnect,
+    binding.init(this._handle, this._buffer, fd, this,
       this._onwrite,
       this._onfinal,
       this._onread,
       this._onclose
     )
-
-    binding.open(this._handle, path)
-  }
-
-  _open (cb) {
-    this._openCallback = cb
-    this._continueOpen()
   }
 
   _read (cb) {
@@ -57,14 +47,6 @@ module.exports = class TtyPipe extends Duplex {
     binding.close(this._handle)
   }
 
-  _continueOpen () {
-    if (this._connected === 0) return
-    if (this._openCallback === null) return
-    const cb = this._openCallback
-    this._openCallback = null
-    cb(this._connected < 0 ? makeError(this._connected) : null)
-  }
-
   _continueWrite (err) {
     if (this._writeCallback === null) return
     const cb = this._writeCallback
@@ -84,11 +66,6 @@ module.exports = class TtyPipe extends Duplex {
     const cb = this._destroyCallback
     this._destroyCallback = null
     cb(null)
-  }
-
-  _onconnect (status) {
-    this._connected = status < 0 ? status : 1
-    this._continueOpen()
   }
 
   _onwrite (status) {

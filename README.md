@@ -1,6 +1,6 @@
 # @pearjs/tty
 
-Native I/O pipes for JavaScript.
+Native TTY streams for JavaScript.
 
 ```
 npm install @pearjs/tty
@@ -9,9 +9,9 @@ npm install @pearjs/tty
 ## Usage
 
 ``` js
-const TtyPipe = require('@pearjs/tty)
+const TTY = require('@pearjs/tty)
 
-const stdout = new TtyPipe(1)
+const stdout = new TTY(1)
 
 stdout.write('Hello world!\n')
 ```

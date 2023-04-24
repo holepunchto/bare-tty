@@ -1,7 +1,7 @@
 {
   "name": "@pearjs/tty",
   "version": "1.0.0",
-  "description": "Native I/O tty stream for JavaScript",
+  "description": "Native TTY streams for JavaScript",
   "main": "index.js",
   "files": [
     "index.js",
@@ -13,8 +13,7 @@
   "scripts": {
     "test": "standard && pear test.js",
     "install": "pear-dev rebuild",
-    "prebuild": "pear-dev prebuild",
-    "fix": "clang-format -i *.c && npx standard --fix"
+    "prebuild": "pear-dev prebuild"
   },
   "repository": {
     "type": "git",

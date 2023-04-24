@@ -1,10 +1,10 @@
 const test = require('brittle')
-const TtyPipe = require('.')
+const TTY = require('.')
 
 test('stdout', (t) => {
   t.plan(1)
 
-  const stdout = new TtyPipe(1)
+  const stdout = new TTY(1)
 
   stdout
     .on('close', () => t.pass('closed'))
@@ -14,7 +14,7 @@ test('stdout', (t) => {
 test('stderr', (t) => {
   t.plan(1)
 
-  const stdout = new TtyPipe(2)
+  const stdout = new TTY(2)
 
   stdout
     .on('close', () => t.pass('closed'))
