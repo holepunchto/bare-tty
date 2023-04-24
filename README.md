@@ -8,8 +8,8 @@ npm install @pearjs/tty
 
 ## Usage
 
-``` js
-const TTY = require('@pearjs/tty)
+```js
+const TTY = require('@pearjs/tty')
 
 const stdout = new TTY(1)
 
