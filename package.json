@@ -13,7 +13,8 @@
   "scripts": {
     "test": "standard && pear test.js",
     "install": "pear-dev rebuild",
-    "prebuild": "pear-dev prebuild"
+    "prebuild": "pear-dev prebuild",
+    "fix": "clang-format -i *.c && npx standard --fix"
   },
   "repository": {
     "type": "git",

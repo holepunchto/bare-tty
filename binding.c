@@ -304,6 +304,7 @@ static js_value_t *pear_pipe_close(js_env_t *env, js_callback_info_t *info) {
   js_get_typedarray_info(env, argv[0], NULL, (void **)&self, NULL, NULL, NULL);
 
   uv_close((uv_handle_t *)&self->pipe, on_close);
+  uv_tty_reset_mode();
 
   return NULL;
 }
