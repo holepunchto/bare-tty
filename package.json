@@ -1,6 +1,6 @@
 {
   "name": "@pearjs/tty",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Native TTY streams for JavaScript",
   "main": "index.js",
   "files": [
