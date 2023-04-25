@@ -24,6 +24,10 @@ on_write (uv_write_t *req, int status) {
 
   js_env_t *env = self->env;
 
+  js_handle_scope_t *scope;
+  err = js_open_handle_scope(env, &scope);
+  assert(err == 0);
+
   js_value_t *ctx;
   err = js_get_reference_value(env, self->ctx, &ctx);
   assert(err == 0);
@@ -37,6 +41,9 @@ on_write (uv_write_t *req, int status) {
   assert(err == 0);
 
   js_call_function(env, ctx, callback, 1, argv, NULL);
+
+  err = js_close_handle_scope(env, scope);
+  assert(err == 0);
 }
 
 static void
@@ -46,6 +53,10 @@ on_shutdown (uv_shutdown_t *req, int status) {
   pear_tty_t *self = (pear_tty_t *) req->data;
 
   js_env_t *env = self->env;
+
+  js_handle_scope_t *scope;
+  err = js_open_handle_scope(env, &scope);
+  assert(err == 0);
 
   js_value_t *ctx;
   err = js_get_reference_value(env, self->ctx, &ctx);
@@ -60,6 +71,9 @@ on_shutdown (uv_shutdown_t *req, int status) {
   assert(err == 0);
 
   js_call_function(env, ctx, callback, 1, argv, NULL);
+
+  err = js_close_handle_scope(env, scope);
+  assert(err == 0);
 }
 
 static void
@@ -72,6 +86,10 @@ on_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
   pear_tty_t *self = (pear_tty_t *) stream;
 
   js_env_t *env = self->env;
+
+  js_handle_scope_t *scope;
+  err = js_open_handle_scope(env, &scope);
+  assert(err == 0);
 
   js_value_t *ctx;
   err = js_get_reference_value(env, self->ctx, &ctx);
@@ -86,6 +104,9 @@ on_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
   assert(err == 0);
 
   js_call_function(env, ctx, callback, 1, argv, NULL);
+
+  err = js_close_handle_scope(env, scope);
+  assert(err == 0);
 }
 
 static void
@@ -95,6 +116,10 @@ on_close (uv_handle_t *handle) {
   pear_tty_t *self = (pear_tty_t *) handle;
 
   js_env_t *env = self->env;
+
+  js_handle_scope_t *scope;
+  err = js_open_handle_scope(env, &scope);
+  assert(err == 0);
 
   js_value_t *ctx;
   err = js_get_reference_value(env, self->ctx, &ctx);
@@ -119,6 +144,9 @@ on_close (uv_handle_t *handle) {
   assert(err == 0);
 
   err = js_delete_reference(env, self->ctx);
+  assert(err == 0);
+
+  err = js_close_handle_scope(env, scope);
   assert(err == 0);
 }
 
