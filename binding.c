@@ -1,6 +1,6 @@
 #include <assert.h>
+#include <bare.h>
 #include <js.h>
-#include <pear.h>
 #include <stdlib.h>
 #include <uv.h>
 
@@ -14,13 +14,13 @@ typedef struct {
   js_ref_t *on_end;
   js_ref_t *on_read;
   js_ref_t *on_close;
-} pear_tty_t;
+} bare_tty_t;
 
 static void
 on_write (uv_write_t *req, int status) {
   int err;
 
-  pear_tty_t *self = (pear_tty_t *) req->data;
+  bare_tty_t *self = (bare_tty_t *) req->data;
 
   js_env_t *env = self->env;
 
@@ -50,7 +50,7 @@ static void
 on_shutdown (uv_shutdown_t *req, int status) {
   int err;
 
-  pear_tty_t *self = (pear_tty_t *) req->data;
+  bare_tty_t *self = (bare_tty_t *) req->data;
 
   js_env_t *env = self->env;
 
@@ -83,7 +83,7 @@ on_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 
   int err;
 
-  pear_tty_t *self = (pear_tty_t *) stream;
+  bare_tty_t *self = (bare_tty_t *) stream;
 
   js_env_t *env = self->env;
 
@@ -113,7 +113,7 @@ static void
 on_close (uv_handle_t *handle) {
   int err;
 
-  pear_tty_t *self = (pear_tty_t *) handle;
+  bare_tty_t *self = (bare_tty_t *) handle;
 
   js_env_t *env = self->env;
 
@@ -152,12 +152,12 @@ on_close (uv_handle_t *handle) {
 
 static void
 on_alloc (uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
-  pear_tty_t *self = (pear_tty_t *) handle;
+  bare_tty_t *self = (bare_tty_t *) handle;
   *buf = self->read_buf;
 }
 
 static js_value_t *
-pear_tty_init (js_env_t *env, js_callback_info_t *info) {
+bare_tty_init (js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 8;
@@ -171,7 +171,7 @@ pear_tty_init (js_env_t *env, js_callback_info_t *info) {
   uv_loop_t *loop;
   js_get_env_loop(env, &loop);
 
-  pear_tty_t *self;
+  bare_tty_t *self;
   err = js_get_typedarray_info(env, argv[0], NULL, (void **) &self, NULL, NULL, NULL);
   assert(err == 0);
 
@@ -214,7 +214,7 @@ pear_tty_init (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-pear_tty_writev (js_env_t *env, js_callback_info_t *info) {
+bare_tty_writev (js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 3;
@@ -229,7 +229,7 @@ pear_tty_writev (js_env_t *env, js_callback_info_t *info) {
   err = js_get_typedarray_info(env, argv[0], NULL, (void **) &req, NULL, NULL, NULL);
   assert(err == 0);
 
-  pear_tty_t *self;
+  bare_tty_t *self;
   err = js_get_typedarray_info(env, argv[1], NULL, (void **) &self, NULL, NULL, NULL);
   assert(err == 0);
 
@@ -266,7 +266,7 @@ pear_tty_writev (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-pear_tty_end (js_env_t *env, js_callback_info_t *info) {
+bare_tty_end (js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -277,7 +277,7 @@ pear_tty_end (js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 1);
 
-  pear_tty_t *self;
+  bare_tty_t *self;
   err = js_get_typedarray_info(env, argv[0], NULL, (void **) &self, NULL, NULL, NULL);
   assert(err == 0);
 
@@ -296,7 +296,7 @@ pear_tty_end (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-pear_tty_resume (js_env_t *env, js_callback_info_t *info) {
+bare_tty_resume (js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -307,7 +307,7 @@ pear_tty_resume (js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 1);
 
-  pear_tty_t *self;
+  bare_tty_t *self;
   err = js_get_typedarray_info(env, argv[0], NULL, (void **) &self, NULL, NULL, NULL);
   assert(err == 0);
 
@@ -322,7 +322,7 @@ pear_tty_resume (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-pear_tty_pause (js_env_t *env, js_callback_info_t *info) {
+bare_tty_pause (js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -333,7 +333,7 @@ pear_tty_pause (js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 1);
 
-  pear_tty_t *self;
+  bare_tty_t *self;
   err = js_get_typedarray_info(env, argv[0], NULL, (void **) &self, NULL, NULL, NULL);
   assert(err == 0);
 
@@ -348,7 +348,7 @@ pear_tty_pause (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-pear_tty_close (js_env_t *env, js_callback_info_t *info) {
+bare_tty_close (js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -359,7 +359,7 @@ pear_tty_close (js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 1);
 
-  pear_tty_t *self;
+  bare_tty_t *self;
   err = js_get_typedarray_info(env, argv[0], NULL, (void **) &self, NULL, NULL, NULL);
   assert(err == 0);
 
@@ -369,7 +369,7 @@ pear_tty_close (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-pear_tty_reset (js_env_t *env, js_callback_info_t *info) {
+bare_tty_reset (js_env_t *env, js_callback_info_t *info) {
   int err;
 
   err = uv_tty_reset_mode();
@@ -379,7 +379,7 @@ pear_tty_reset (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-pear_tty_set_mode (js_env_t *env, js_callback_info_t *info) {
+bare_tty_set_mode (js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 2;
@@ -390,7 +390,7 @@ pear_tty_set_mode (js_env_t *env, js_callback_info_t *info) {
 
   assert(argc == 2);
 
-  pear_tty_t *self;
+  bare_tty_t *self;
   err = js_get_typedarray_info(env, argv[0], NULL, (void **) &self, NULL, NULL, NULL);
   assert(err == 0);
 
@@ -412,7 +412,7 @@ static js_value_t *
 init (js_env_t *env, js_value_t *exports) {
   {
     js_value_t *val;
-    js_create_uint32(env, sizeof(pear_tty_t), &val);
+    js_create_uint32(env, sizeof(bare_tty_t), &val);
     js_set_named_property(env, exports, "sizeofTTY", val);
   }
   {
@@ -422,42 +422,42 @@ init (js_env_t *env, js_value_t *exports) {
   }
   {
     js_value_t *fn;
-    js_create_function(env, "init", -1, pear_tty_init, NULL, &fn);
+    js_create_function(env, "init", -1, bare_tty_init, NULL, &fn);
     js_set_named_property(env, exports, "init", fn);
   }
   {
     js_value_t *fn;
-    js_create_function(env, "writev", -1, pear_tty_writev, NULL, &fn);
+    js_create_function(env, "writev", -1, bare_tty_writev, NULL, &fn);
     js_set_named_property(env, exports, "writev", fn);
   }
   {
     js_value_t *fn;
-    js_create_function(env, "end", -1, pear_tty_end, NULL, &fn);
+    js_create_function(env, "end", -1, bare_tty_end, NULL, &fn);
     js_set_named_property(env, exports, "end", fn);
   }
   {
     js_value_t *fn;
-    js_create_function(env, "resume", -1, pear_tty_resume, NULL, &fn);
+    js_create_function(env, "resume", -1, bare_tty_resume, NULL, &fn);
     js_set_named_property(env, exports, "resume", fn);
   }
   {
     js_value_t *fn;
-    js_create_function(env, "pause", -1, pear_tty_pause, NULL, &fn);
+    js_create_function(env, "pause", -1, bare_tty_pause, NULL, &fn);
     js_set_named_property(env, exports, "pause", fn);
   }
   {
     js_value_t *fn;
-    js_create_function(env, "close", -1, pear_tty_close, NULL, &fn);
+    js_create_function(env, "close", -1, bare_tty_close, NULL, &fn);
     js_set_named_property(env, exports, "close", fn);
   }
   {
     js_value_t *fn;
-    js_create_function(env, "reset", -1, pear_tty_reset, NULL, &fn);
+    js_create_function(env, "reset", -1, bare_tty_reset, NULL, &fn);
     js_set_named_property(env, exports, "reset", fn);
   }
   {
     js_value_t *fn;
-    js_create_function(env, "setMode", -1, pear_tty_set_mode, NULL, &fn);
+    js_create_function(env, "setMode", -1, bare_tty_set_mode, NULL, &fn);
     js_set_named_property(env, exports, "setMode", fn);
   }
   {
@@ -481,4 +481,4 @@ init (js_env_t *env, js_value_t *exports) {
   return exports;
 }
 
-PEAR_MODULE(pear_tty, init)
+BARE_MODULE(bare_tty, init)

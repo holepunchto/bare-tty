@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(pear_tty C)
+project(bare_tty C)
 
-include(pear)
+include(bare)
 
-add_pear_module(pear_tty)
+add_bare_module(bare_tty)
 
 target_sources(
-  pear_tty
+  bare_tty
   PRIVATE
     binding.c
 )

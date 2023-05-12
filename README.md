@@ -1,15 +1,15 @@
-# @pearjs/tty
+# bare-tty
 
 Native TTY streams for JavaScript.
 
 ```
-npm install @pearjs/tty
+npm install bare-tty
 ```
 
 ## Usage
 
 ```js
-const TTY = require('@pearjs/tty')
+const TTY = require('bare-tty')
 
 const stdout = new TTY(1)
 

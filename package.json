@@ -1,5 +1,5 @@
 {
-  "name": "@pearjs/tty",
+  "name": "bare-tty",
   "version": "1.0.3",
   "description": "Native TTY streams for JavaScript",
   "main": "index.js",
@@ -11,20 +11,20 @@
     "prebuilds"
   ],
   "scripts": {
-    "test": "standard && pear test.js",
-    "install": "pear-dev rebuild",
-    "prebuild": "pear-dev prebuild"
+    "test": "standard && bare test.js",
+    "install": "bare-dev rebuild",
+    "prebuild": "bare-dev prebuild"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/holepunchto/pearjs-tty.git"
+    "url": "https://github.com/holepunchto/bare-tty.git"
   },
   "author": "Holepunch",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/holepunchto/pearjs-tty/issues"
+    "url": "https://github.com/holepunchto/bare-tty/issues"
   },
-  "homepage": "https://github.com/holepunchto/pearjs-tty#readme",
+  "homepage": "https://github.com/holepunchto/bare-tty#readme",
   "dependencies": {
     "streamx": "^2.13.2"
   },
