@@ -6,14 +6,13 @@ const DEFAULT_READ_BUFFER = 65536
 process.on('exit', () => binding.reset())
 
 module.exports = exports = class TTY extends Duplex {
-  constructor (fd, { readBufferSize = DEFAULT_READ_BUFFER, allowHalfOpen = true } = {}) {
+  constructor (fd, opts = {}) {
     super({ mapWritable })
 
-    const slab = Buffer.alloc(binding.sizeofTTY + binding.sizeofWrite + readBufferSize)
-
-    this._handle = slab.subarray(0, binding.sizeofTTY)
-    this._req = slab.subarray(binding.sizeofTTY, binding.sizeofTTY + binding.sizeofWrite)
-    this._buffer = slab.subarray(binding.sizeofTTY + binding.sizeofWrite)
+    const {
+      readBufferSize = DEFAULT_READ_BUFFER,
+      allowHalfOpen = true
+    } = opts
 
     this._writeCallback = null
     this._finalCallback = null
@@ -21,7 +20,9 @@ module.exports = exports = class TTY extends Duplex {
 
     this._allowHalfOpen = allowHalfOpen
 
-    binding.init(this._handle, this._buffer, fd, this,
+    this._buffer = Buffer.alloc(readBufferSize)
+
+    this._handle = binding.init(fd, this._buffer, this,
       this._onwrite,
       this._onfinal,
       this._onread,
@@ -36,7 +37,7 @@ module.exports = exports = class TTY extends Duplex {
 
   _writev (datas, cb) {
     this._writeCallback = cb
-    binding.writev(this._req, this._handle, datas)
+    binding.writev(this._handle, datas)
   }
 
   _final (cb) {
