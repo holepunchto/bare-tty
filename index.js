@@ -70,20 +70,19 @@ module.exports = exports = class TTY extends Duplex {
     cb(null)
   }
 
-  _onwrite (status) {
-    const err = status < 0 ? makeError(status) : null
+  _onwrite (err) {
     this._continueWrite(err)
   }
 
-  _onread (read) {
-    if (read === 0) {
-      this.push(null)
-      if (this._allowHalfOpen === false) this.end()
+  _onread (err, read) {
+    if (err) {
+      this.destroy(err)
       return
     }
 
-    if (read < 0) {
-      this.destroy(makeError(read))
+    if (read === 0) {
+      this.push(null)
+      if (this._allowHalfOpen === false) this.end()
       return
     }
 
@@ -93,8 +92,7 @@ module.exports = exports = class TTY extends Duplex {
     this.push(copy)
   }
 
-  _onfinal (status) {
-    const err = status < 0 ? makeError(status) : null
+  _onfinal (err) {
     this._continueFinal(err)
   }
 
@@ -116,14 +114,4 @@ exports.constants = {
 
 function mapWritable (buf) {
   return typeof buf === 'string' ? Buffer.from(buf) : buf
-}
-
-function makeError (errno) {
-  const [code, msg] = process.errnos.get(errno)
-  const err = new Error(code + ': ' + msg)
-
-  err.code = code
-  err.errno = errno
-
-  return err
 }
