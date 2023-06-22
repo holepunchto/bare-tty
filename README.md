@@ -9,9 +9,9 @@ npm install bare-tty
 ## Usage
 
 ```js
-const TTY = require('bare-tty')
+const tty = require('bare-tty')
 
-const stdout = new TTY(1)
+const stdout = new tty.WriteStream(1)
 
 stdout.write('Hello world!\n')
 ```

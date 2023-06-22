@@ -369,8 +369,6 @@ bare_tty_resume (js_env_t *env, js_callback_info_t *info) {
   err = js_get_arraybuffer_info(env, argv[0], (void **) &tty, NULL);
   assert(err == 0);
 
-  if (!uv_is_readable((uv_stream_t *) &tty->handle)) return NULL;
-
   err = uv_read_start((uv_stream_t *) &tty->handle, on_alloc, on_read);
 
   if (err < 0) {
@@ -396,8 +394,6 @@ bare_tty_pause (js_env_t *env, js_callback_info_t *info) {
   bare_tty_t *tty;
   err = js_get_arraybuffer_info(env, argv[0], (void **) &tty, NULL);
   assert(err == 0);
-
-  if (!uv_is_readable((uv_stream_t *) &tty->handle)) return NULL;
 
   err = uv_read_stop((uv_stream_t *) &tty->handle);
 
