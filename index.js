@@ -14,9 +14,9 @@ module.exports = exports = class TTY extends Duplex {
       allowHalfOpen = true
     } = opts
 
-    this._writeCallback = null
-    this._finalCallback = null
-    this._destroyCallback = null
+    this._pendingWrite = null
+    this._pendingFinal = null
+    this._pendingDestroy = null
 
     this._allowHalfOpen = allowHalfOpen
 
@@ -36,38 +36,38 @@ module.exports = exports = class TTY extends Duplex {
   }
 
   _writev (datas, cb) {
-    this._writeCallback = cb
+    this._pendingWrite = cb
     binding.writev(this._handle, datas)
   }
 
   _final (cb) {
-    this._finalCallback = cb
+    this._pendingFinal = cb
     binding.end(this._handle)
   }
 
   _destroy (cb) {
-    this._destroyCallback = cb
+    this._pendingDestroy = cb
     binding.close(this._handle)
   }
 
   _continueWrite (err) {
-    if (this._writeCallback === null) return
-    const cb = this._writeCallback
-    this._writeCallback = null
+    if (this._pendingWrite === null) return
+    const cb = this._pendingWrite
+    this._pendingWrite = null
     cb(err)
   }
 
   _continueFinal (err) {
-    if (this._finalCallback === null) return
-    const cb = this._finalCallback
-    this._finalCallback = null
+    if (this._pendingFinal === null) return
+    const cb = this._pendingFinal
+    this._pendingFinal = null
     cb(err)
   }
 
   _continueDestroy () {
-    if (this._destroyCallback === null) return
-    const cb = this._destroyCallback
-    this._destroyCallback = null
+    if (this._pendingDestroy === null) return
+    const cb = this._pendingDestroy
+    this._pendingDestroy = null
     cb(null)
   }
 
