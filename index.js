@@ -3,8 +3,6 @@ const binding = require('./binding')
 
 const DEFAULT_READ_BUFFER = 65536
 
-process.on('exit', () => binding.reset())
-
 exports.ReadStream = class TTYReadStream extends Readable {
   constructor (fd, opts = {}) {
     super()

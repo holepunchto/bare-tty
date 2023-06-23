@@ -421,17 +421,14 @@ bare_tty_close (js_env_t *env, js_callback_info_t *info) {
   err = js_get_arraybuffer_info(env, argv[0], (void **) &tty, NULL);
   assert(err == 0);
 
+  err = uv_tty_set_mode(&tty->handle, UV_TTY_MODE_NORMAL);
+
+  if (err < 0) {
+    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    return NULL;
+  }
+
   uv_close((uv_handle_t *) &tty->handle, on_close);
-
-  return NULL;
-}
-
-static js_value_t *
-bare_tty_reset (js_env_t *env, js_callback_info_t *info) {
-  int err;
-
-  err = uv_tty_reset_mode();
-  assert(err == 0);
 
   return NULL;
 }
@@ -497,11 +494,6 @@ init (js_env_t *env, js_value_t *exports) {
     js_value_t *fn;
     js_create_function(env, "close", -1, bare_tty_close, NULL, &fn);
     js_set_named_property(env, exports, "close", fn);
-  }
-  {
-    js_value_t *fn;
-    js_create_function(env, "reset", -1, bare_tty_reset, NULL, &fn);
-    js_set_named_property(env, exports, "reset", fn);
   }
   {
     js_value_t *fn;
