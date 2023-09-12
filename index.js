@@ -102,6 +102,10 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     return true
   }
 
+  getWindowSize () {
+    return binding.getWindowSize(this._handle)
+  }
+
   _writev (datas, cb) {
     this._pendingWrite = cb
     binding.writev(this._handle, datas)

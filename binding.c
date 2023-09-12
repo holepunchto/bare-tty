@@ -464,6 +464,51 @@ bare_tty_set_mode (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
+bare_tty_get_window_size (js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  bare_tty_t *tty;
+  err = js_get_arraybuffer_info(env, argv[0], (void **) &tty, NULL);
+  assert(err == 0);
+
+  int width, height;
+  err = uv_tty_get_winsize(&tty->handle, &width, &height);
+
+  if (err < 0) {
+    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    return NULL;
+  }
+
+  js_value_t *result;
+  err = js_create_array_with_length(env, 2, &result);
+  assert(err == 0);
+
+  js_value_t *value;
+
+  err = js_create_int32(env, width, &value);
+  assert(err == 0);
+
+  err = js_set_element(env, result, 0, value);
+  assert(err == 0);
+
+  err = js_create_int32(env, height, &value);
+  assert(err == 0);
+
+  err = js_set_element(env, result, 1, value);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
 init (js_env_t *env, js_value_t *exports) {
   {
     js_value_t *fn;
@@ -499,6 +544,11 @@ init (js_env_t *env, js_value_t *exports) {
     js_value_t *fn;
     js_create_function(env, "setMode", -1, bare_tty_set_mode, NULL, &fn);
     js_set_named_property(env, exports, "setMode", fn);
+  }
+  {
+    js_value_t *fn;
+    js_create_function(env, "getWindowSize", -1, bare_tty_get_window_size, NULL, &fn);
+    js_set_named_property(env, exports, "getWindowSize", fn);
   }
   {
     js_value_t *val;
