@@ -25,6 +25,8 @@ exports.ReadStream = class TTYReadStream extends Readable {
       this._onread,
       this._onclose
     )
+
+    TTYReadStream._streams.add(this)
   }
 
   get isTTY () {
@@ -46,6 +48,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
   _destroy (cb) {
     this._pendingDestroy = cb
     binding.close(this._handle)
+    TTYReadStream._streams.delete(this)
   }
 
   _continueDestroy () {
@@ -80,6 +83,8 @@ exports.ReadStream = class TTYReadStream extends Readable {
     this._handle = null
     this._continueDestroy()
   }
+
+  static _streams = new Set()
 }
 
 exports.WriteStream = class TTYWriteStream extends Writable {
@@ -96,6 +101,8 @@ exports.WriteStream = class TTYWriteStream extends Writable {
       noop,
       this._onclose
     )
+
+    TTYWriteStream._streams.add(this)
   }
 
   get isTTY () {
@@ -119,6 +126,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   _destroy (cb) {
     this._pendingDestroy = cb
     binding.close(this._handle)
+    TTYWriteStream._streams.delete(this)
   }
 
   _continueWrite (err) {
@@ -175,6 +183,8 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._handle = null
     this._continueDestroy()
   }
+
+  static _streams = new Set()
 }
 
 exports.constants = {
@@ -182,6 +192,17 @@ exports.constants = {
   MODE_RAW: binding.MODE_RAW,
   MODE_IO: binding.MODE_IO || 0
 }
+
+process
+  .on('exit', () => {
+    for (const stream of exports.ReadStream._streams) {
+      stream.destroy()
+    }
+
+    for (const stream of exports.WriteStream._streams) {
+      stream.destroy()
+    }
+  })
 
 const empty = Buffer.alloc(0)
 
