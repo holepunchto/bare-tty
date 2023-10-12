@@ -130,7 +130,14 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     binding.end(this._handle)
   }
 
+  _predestroy () {
+    if (this._handle === null) return
+    binding.close(this._handle)
+    TTYWriteStream._streams.delete(this)
+  }
+
   _destroy (cb) {
+    if (this._handle === null) return cb(null)
     this._pendingDestroy = cb
     binding.close(this._handle)
     TTYWriteStream._streams.delete(this)
