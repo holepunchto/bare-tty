@@ -15,6 +15,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
     this._pendingDestroy = null
 
     this._reading = false
+    this._closing = false
     this._allowHalfOpen = allowHalfOpen
 
     this._buffer = Buffer.alloc(readBufferSize)
@@ -46,13 +47,15 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   _predestroy () {
-    if (this._handle === null) return
+    if (this._closing) return
+    this._closing = true
     binding.close(this._handle)
     TTYReadStream._streams.delete(this)
   }
 
   _destroy (cb) {
-    if (this._handle === null) return cb(null)
+    if (this._closing) return cb(null)
+    this._closing = true
     this._pendingDestroy = cb
     binding.close(this._handle)
     TTYReadStream._streams.delete(this)
@@ -102,6 +105,8 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._pendingFinal = null
     this._pendingDestroy = null
 
+    this._closing = false
+
     this._handle = binding.init(fd, empty, this,
       this._onwrite,
       this._onfinal,
@@ -131,13 +136,15 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   _predestroy () {
-    if (this._handle === null) return
+    if (this._closing) return
+    this._closing = true
     binding.close(this._handle)
     TTYWriteStream._streams.delete(this)
   }
 
   _destroy (cb) {
-    if (this._handle === null) return cb(null)
+    if (this._closing) return cb(null)
+    this._closing = true
     this._pendingDestroy = cb
     binding.close(this._handle)
     TTYWriteStream._streams.delete(this)
