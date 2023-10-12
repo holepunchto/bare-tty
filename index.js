@@ -45,7 +45,14 @@ exports.ReadStream = class TTYReadStream extends Readable {
     cb(null)
   }
 
+  _predestroy () {
+    if (this._handle === null) return
+    binding.close(this._handle)
+    TTYReadStream._streams.delete(this)
+  }
+
   _destroy (cb) {
+    if (this._handle === null) return cb(null)
     this._pendingDestroy = cb
     binding.close(this._handle)
     TTYReadStream._streams.delete(this)
