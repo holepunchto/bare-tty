@@ -416,10 +416,9 @@ bare_tty_close (js_env_t *env, js_callback_info_t *info) {
 
   err = uv_tty_set_mode(&tty->handle, UV_TTY_MODE_NORMAL);
 
-  if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
-    return NULL;
-  }
+  // Resetting the mode won't always work, in particular on Windows when we
+  // close an output stream.
+  (void) err;
 
   uv_close((uv_handle_t *) &tty->handle, on_close);
 
