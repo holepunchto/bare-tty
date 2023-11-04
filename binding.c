@@ -243,13 +243,6 @@ bare_tty_init (js_env_t *env, js_callback_info_t *info) {
     return NULL;
   }
 
-  err = uv_stream_set_blocking((uv_stream_t *) &tty->handle, true);
-
-  if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
-    return NULL;
-  }
-
   tty->env = env;
 
   err = js_get_typedarray_info(env, argv[1], NULL, (void **) &tty->read.base, &tty->read.len, NULL, NULL);
