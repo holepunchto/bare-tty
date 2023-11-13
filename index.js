@@ -214,7 +214,7 @@ exports.constants = {
   MODE_IO: binding.MODE_IO || 0
 }
 
-process
+Bare
   .on('exit', () => {
     for (const stream of exports.ReadStream._streams) {
       stream.destroy()
