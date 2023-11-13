@@ -243,6 +243,11 @@ bare_tty_init (js_env_t *env, js_callback_info_t *info) {
     return NULL;
   }
 
+  err = uv_stream_set_blocking((uv_stream_t *) &tty->handle, true);
+
+  // Not all platforms support blocking TTY handles.
+  (void) err;
+
   tty->env = env;
 
   err = js_get_typedarray_info(env, argv[1], NULL, (void **) &tty->read.base, &tty->read.len, NULL, NULL);
