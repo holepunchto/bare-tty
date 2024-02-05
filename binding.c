@@ -250,7 +250,7 @@ bare_tty_init (js_env_t *env, js_callback_info_t *info) {
 
   tty->env = env;
 
-  err = js_get_typedarray_info(env, argv[1], NULL, (void **) &tty->read.base, &tty->read.len, NULL, NULL);
+  err = js_get_typedarray_info(env, argv[1], NULL, (void **) &tty->read.base, (size_t *) &tty->read.len, NULL, NULL);
   assert(err == 0);
 
   err = js_create_reference(env, argv[2], 1, &tty->ctx);
@@ -301,7 +301,7 @@ bare_tty_writev (js_env_t *env, js_callback_info_t *info) {
     assert(err == 0);
 
     uv_buf_t *buf = &bufs[i];
-    err = js_get_typedarray_info(env, item, NULL, (void **) &buf->base, &buf->len, NULL, NULL);
+    err = js_get_typedarray_info(env, item, NULL, (void **) &buf->base, (size_t *) &buf->len, NULL, NULL);
     assert(err == 0);
   }
 
