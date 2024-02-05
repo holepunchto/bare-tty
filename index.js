@@ -1,3 +1,4 @@
+/* global Bare */
 const { Readable, Writable } = require('streamx')
 const binding = require('./binding')
 
