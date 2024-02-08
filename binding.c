@@ -506,6 +506,29 @@ bare_tty_get_window_size (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
+bare_tty_is_tty (js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  int32_t fd;
+  err = js_get_value_int32(env, argv[0], &fd);
+  assert(err == 0);
+
+  js_value_t *result;
+  err = js_get_boolean(env, uv_guess_handle(fd) == UV_TTY, &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
 init (js_env_t *env, js_value_t *exports) {
   {
     js_value_t *fn;
@@ -546,6 +569,11 @@ init (js_env_t *env, js_value_t *exports) {
     js_value_t *fn;
     js_create_function(env, "getWindowSize", -1, bare_tty_get_window_size, NULL, &fn);
     js_set_named_property(env, exports, "getWindowSize", fn);
+  }
+  {
+    js_value_t *fn;
+    js_create_function(env, "isTTY", -1, bare_tty_is_tty, NULL, &fn);
+    js_set_named_property(env, exports, "isTTY", fn);
   }
   {
     js_value_t *val;

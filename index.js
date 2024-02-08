@@ -209,6 +209,8 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   static _streams = new Set()
 }
 
+exports.isTTY = binding.isTTY
+
 exports.constants = {
   MODE_NORMAL: binding.MODE_NORMAL,
   MODE_RAW: binding.MODE_RAW,
