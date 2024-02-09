@@ -7,7 +7,7 @@ include(bare)
 add_bare_module(bare_tty)
 
 target_sources(
-  bare_tty
+  ${bare_tty}
   PRIVATE
     binding.c
 )
