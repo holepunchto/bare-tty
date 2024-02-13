@@ -39,6 +39,10 @@ exports.ReadStream = class TTYReadStream extends Readable {
     binding.setMode(this._handle, mode)
   }
 
+  setRawMode (mode) {
+    this.setMode(mode ? constants.MODE_RAW : constants.MODE_NORMAL)
+  }
+
   _read (cb) {
     if (!this._reading) {
       this._reading = true
@@ -211,7 +215,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
 
 exports.isTTY = binding.isTTY
 
-exports.constants = {
+const constants = exports.constants = {
   MODE_NORMAL: binding.MODE_NORMAL,
   MODE_RAW: binding.MODE_RAW,
   MODE_IO: binding.MODE_IO || 0
