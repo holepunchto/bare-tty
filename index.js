@@ -23,6 +23,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
     this._handle = binding.init(fd, this._buffer, this,
       noop,
+      noop,
       this._onread,
       this._onclose
     )
@@ -48,13 +49,6 @@ exports.ReadStream = class TTYReadStream extends Readable {
       binding.resume(this._handle)
     }
     cb(null)
-  }
-
-  _predestroy () {
-    if (this._closing) return
-    this._closing = true
-    binding.close(this._handle)
-    TTYReadStream._streams.delete(this)
   }
 
   _destroy (cb) {
@@ -106,12 +100,14 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     super({ mapWritable })
 
     this._pendingWrite = null
+    this._pendingFinal = null
     this._pendingDestroy = null
 
     this._closing = false
 
     this._handle = binding.init(fd, empty, this,
       this._onwrite,
+      this._onfinal,
       noop,
       this._onclose
     )
@@ -132,11 +128,9 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     binding.writev(this._handle, datas)
   }
 
-  _predestroy () {
-    if (this._closing) return
-    this._closing = true
-    binding.close(this._handle)
-    TTYWriteStream._streams.delete(this)
+  _final (cb) {
+    this._pendingFinal = cb
+    binding.end(this._handle)
   }
 
   _destroy (cb) {
@@ -151,6 +145,13 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     if (this._pendingWrite === null) return
     const cb = this._pendingWrite
     this._pendingWrite = null
+    cb(err)
+  }
+
+  _continueFinal (err) {
+    if (this._pendingFinal === null) return
+    const cb = this._pendingFinal
+    this._pendingFinal = null
     cb(err)
   }
 
@@ -184,6 +185,10 @@ exports.WriteStream = class TTYWriteStream extends Writable {
       this._reading = false
       binding.pause(this._handle)
     }
+  }
+
+  _onfinal (err) {
+    this._continueFinal(err)
   }
 
   _onclose () {
