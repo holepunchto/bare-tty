@@ -1,6 +1,6 @@
 {
   "name": "bare-tty",
-  "version": "3.2.3",
+  "version": "3.2.4",
   "description": "Native TTY streams for JavaScript",
   "main": "index.js",
   "files": [
