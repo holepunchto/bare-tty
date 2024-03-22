@@ -128,7 +128,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   _writev (datas, cb) {
-    this._pendingWrite = cb
+    this._pendingWrite = [cb, datas]
     binding.writev(this._handle, datas)
   }
 
@@ -149,7 +149,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
 
   _continueWrite (err) {
     if (this._pendingWrite === null) return
-    const cb = this._pendingWrite
+    const cb = this._pendingWrite[0]
     this._pendingWrite = null
     cb(err)
   }
