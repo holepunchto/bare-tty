@@ -22,7 +22,7 @@ typedef struct {
 } bare_tty_t;
 
 static void
-on_write (uv_write_t *req, int status) {
+bare_tty__on_write (uv_write_t *req, int status) {
   int err;
 
   bare_tty_t *tty = (bare_tty_t *) req->data;
@@ -66,7 +66,7 @@ on_write (uv_write_t *req, int status) {
 }
 
 static void
-on_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
+bare_tty__on_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
   if (nread == UV_EOF) nread = 0;
   else if (nread == 0) return;
 
@@ -119,7 +119,7 @@ on_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 }
 
 static void
-on_close (uv_handle_t *handle) {
+bare_tty__on_close (uv_handle_t *handle) {
   int err;
 
   bare_tty_t *tty = (bare_tty_t *) handle;
@@ -157,7 +157,7 @@ on_close (uv_handle_t *handle) {
 }
 
 static void
-on_alloc (uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+bare_tty__on_alloc (uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
   bare_tty_t *tty = (bare_tty_t *) handle;
 
   *buf = tty->read;
@@ -258,7 +258,7 @@ bare_tty_writev (js_env_t *env, js_callback_info_t *info) {
 
   req->data = tty;
 
-  err = uv_write(req, (uv_stream_t *) &tty->handle, bufs, bufs_len, on_write);
+  err = uv_write(req, (uv_stream_t *) &tty->handle, bufs, bufs_len, bare_tty__on_write);
 
   free(bufs);
 
@@ -286,7 +286,7 @@ bare_tty_resume (js_env_t *env, js_callback_info_t *info) {
   err = js_get_arraybuffer_info(env, argv[0], (void **) &tty, NULL);
   assert(err == 0);
 
-  err = uv_read_start((uv_stream_t *) &tty->handle, on_alloc, on_read);
+  err = uv_read_start((uv_stream_t *) &tty->handle, bare_tty__on_alloc, bare_tty__on_read);
 
   if (err < 0) {
     js_throw_error(env, uv_err_name(err), uv_strerror(err));
@@ -344,7 +344,7 @@ bare_tty_close (js_env_t *env, js_callback_info_t *info) {
   // close an output stream.
   (void) err;
 
-  uv_close((uv_handle_t *) &tty->handle, on_close);
+  uv_close((uv_handle_t *) &tty->handle, bare_tty__on_close);
 
   return NULL;
 }
@@ -449,63 +449,42 @@ bare_tty_is_tty (js_env_t *env, js_callback_info_t *info) {
 
 static js_value_t *
 init (js_env_t *env, js_value_t *exports) {
-  {
-    js_value_t *fn;
-    js_create_function(env, "init", -1, bare_tty_init, NULL, &fn);
-    js_set_named_property(env, exports, "init", fn);
+  int err;
+
+#define V(name, fn) \
+  { \
+    js_value_t *val; \
+    err = js_create_function(env, name, -1, fn, NULL, &val); \
+    assert(err == 0); \
+    err = js_set_named_property(env, exports, name, val); \
+    assert(err == 0); \
   }
-  {
-    js_value_t *fn;
-    js_create_function(env, "writev", -1, bare_tty_writev, NULL, &fn);
-    js_set_named_property(env, exports, "writev", fn);
+
+  V("init", bare_tty_init)
+  V("writev", bare_tty_writev)
+  V("resume", bare_tty_resume)
+  V("pause", bare_tty_pause)
+  V("close", bare_tty_close)
+  V("setMode", bare_tty_set_mode)
+  V("getWindowSize", bare_tty_get_window_size)
+  V("isTTY", bare_tty_is_tty)
+#undef V
+
+#define V(name, n) \
+  { \
+    js_value_t *val; \
+    err = js_create_uint32(env, n, &val); \
+    assert(err == 0); \
+    err = js_set_named_property(env, exports, name, val); \
+    assert(err == 0); \
   }
-  {
-    js_value_t *fn;
-    js_create_function(env, "resume", -1, bare_tty_resume, NULL, &fn);
-    js_set_named_property(env, exports, "resume", fn);
-  }
-  {
-    js_value_t *fn;
-    js_create_function(env, "pause", -1, bare_tty_pause, NULL, &fn);
-    js_set_named_property(env, exports, "pause", fn);
-  }
-  {
-    js_value_t *fn;
-    js_create_function(env, "close", -1, bare_tty_close, NULL, &fn);
-    js_set_named_property(env, exports, "close", fn);
-  }
-  {
-    js_value_t *fn;
-    js_create_function(env, "setMode", -1, bare_tty_set_mode, NULL, &fn);
-    js_set_named_property(env, exports, "setMode", fn);
-  }
-  {
-    js_value_t *fn;
-    js_create_function(env, "getWindowSize", -1, bare_tty_get_window_size, NULL, &fn);
-    js_set_named_property(env, exports, "getWindowSize", fn);
-  }
-  {
-    js_value_t *fn;
-    js_create_function(env, "isTTY", -1, bare_tty_is_tty, NULL, &fn);
-    js_set_named_property(env, exports, "isTTY", fn);
-  }
-  {
-    js_value_t *val;
-    js_create_uint32(env, UV_TTY_MODE_NORMAL, &val);
-    js_set_named_property(env, exports, "MODE_NORMAL", val);
-  }
-  {
-    js_value_t *val;
-    js_create_uint32(env, UV_TTY_MODE_RAW, &val);
-    js_set_named_property(env, exports, "MODE_RAW", val);
-  }
+
+  V("MODE_NORMAL", UV_TTY_MODE_NORMAL)
+  V("MODE_RAW", UV_TTY_MODE_RAW)
 #ifndef _WIN32
-  {
-    js_value_t *val;
-    js_create_uint32(env, UV_TTY_MODE_IO, &val);
-    js_set_named_property(env, exports, "MODE_IO", val);
-  }
+  V("MODE_IO", UV_TTY_MODE_IO)
 #endif
+#undef V
 
   return exports;
 }
