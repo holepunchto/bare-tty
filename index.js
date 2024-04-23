@@ -1,5 +1,5 @@
 /* global Bare */
-const { Readable, Writable } = require('streamx')
+const { Readable, Writable } = require('bare-stream')
 const binding = require('./binding')
 const constants = require('./lib/constants')
 
