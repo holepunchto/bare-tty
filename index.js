@@ -1,23 +1,24 @@
 /* global Bare */
 const { Readable, Writable } = require('streamx')
 const binding = require('./binding')
+const constants = require('./lib/constants')
 
-const DEFAULT_READ_BUFFER = 65536
+const defaultReadBufferSize = 65536
 
 exports.ReadStream = class TTYReadStream extends Readable {
   constructor (fd, opts = {}) {
     super()
 
     const {
-      readBufferSize = DEFAULT_READ_BUFFER,
+      readBufferSize = defaultReadBufferSize,
       allowHalfOpen = true
     } = opts
 
-    this._pendingDestroy = null
+    this._state = 0
 
-    this._reading = false
-    this._closing = false
     this._allowHalfOpen = allowHalfOpen
+
+    this._pendingDestroy = null
 
     this._buffer = Buffer.alloc(readBufferSize)
 
@@ -39,27 +40,28 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   setRawMode (mode) {
-    this.setMode(mode ? constants.MODE_RAW : constants.MODE_NORMAL)
+    this.setMode(mode ? constants.mode.RAW : constants.mode.NORMAL)
   }
 
   _read (cb) {
-    if (!this._reading) {
-      this._reading = true
+    if ((this._state & constants.state.READING) === 0) {
+      this._state |= constants.state.READING
       binding.resume(this._handle)
     }
+
     cb(null)
   }
 
   _predestroy () {
-    if (this._closing) return
-    this._closing = true
+    if (this._state & constants.state.CLOSING) return
+    this._state |= constants.state.CLOSING
     binding.close(this._handle)
     TTYReadStream._streams.delete(this)
   }
 
   _destroy (cb) {
-    if (this._closing) return cb(null)
-    this._closing = true
+    if (this._state & constants.state.CLOSING) return cb(null)
+    this._state |= constants.state.CLOSING
     this._pendingDestroy = cb
     binding.close(this._handle)
     TTYReadStream._streams.delete(this)
@@ -88,7 +90,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
     copy.set(this._buffer.subarray(0, read))
 
     if (this.push(copy) === false && this.destroying === false) {
-      this._reading = false
+      this._state &= ~constants.state.READING
       binding.pause(this._handle)
     }
   }
@@ -105,10 +107,10 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   constructor (fd, opts = {}) {
     super({ mapWritable })
 
+    this._state = 0
+
     this._pendingWrite = null
     this._pendingDestroy = null
-
-    this._closing = false
 
     this._handle = binding.init(fd, empty, this,
       this._onwrite,
@@ -133,15 +135,15 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   _predestroy () {
-    if (this._closing) return
-    this._closing = true
+    if (this._state & constants.state.CLOSING) return
+    this._state |= constants.state.CLOSING
     binding.close(this._handle)
     TTYWriteStream._streams.delete(this)
   }
 
   _destroy (cb) {
-    if (this._closing) return cb(null)
-    this._closing = true
+    if (this._state & constants.state.CLOSING) return cb(null)
+    this._state |= constants.state.CLOSING
     this._pendingDestroy = cb
     binding.close(this._handle)
     TTYWriteStream._streams.delete(this)
@@ -165,27 +167,6 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._continueWrite(err)
   }
 
-  _onread (err, read) {
-    if (err) {
-      this.destroy(err)
-      return
-    }
-
-    if (read === 0) {
-      this.push(null)
-      if (this._allowHalfOpen === false) this.end()
-      return
-    }
-
-    const copy = Buffer.allocUnsafe(read)
-    copy.set(this._buffer.subarray(0, read))
-
-    if (this.push(copy) === false && this.destroying === false) {
-      this._reading = false
-      binding.pause(this._handle)
-    }
-  }
-
   _onclose () {
     this._handle = null
     this._continueDestroy()
@@ -194,13 +175,9 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   static _streams = new Set()
 }
 
-exports.isTTY = binding.isTTY
+exports.constants = constants
 
-const constants = exports.constants = {
-  MODE_NORMAL: binding.MODE_NORMAL,
-  MODE_RAW: binding.MODE_RAW,
-  MODE_IO: binding.MODE_IO || 0
-}
+exports.isTTY = binding.isTTY
 
 Bare
   .on('exit', () => {
