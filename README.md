@@ -3,7 +3,7 @@
 Native TTY streams for JavaScript.
 
 ```
-npm install bare-tty
+npm i bare-tty
 ```
 
 ## Usage
