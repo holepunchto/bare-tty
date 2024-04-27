@@ -179,6 +179,8 @@ exports.constants = constants
 
 exports.isTTY = binding.isTTY
 
+exports.isatty = exports.isTTY // For Node.js compatibility
+
 Bare
   .on('exit', () => {
     for (const stream of exports.ReadStream._streams) {
