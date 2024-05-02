@@ -37,10 +37,11 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
   setMode (mode) {
     binding.setMode(this._handle, mode)
+    return this
   }
 
   setRawMode (mode) {
-    this.setMode(mode ? constants.mode.RAW : constants.mode.NORMAL)
+    return this.setMode(mode ? constants.mode.RAW : constants.mode.NORMAL)
   }
 
   _read (cb) {
