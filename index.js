@@ -44,13 +44,11 @@ exports.ReadStream = class TTYReadStream extends Readable {
     return this.setMode(mode ? constants.mode.RAW : constants.mode.NORMAL)
   }
 
-  _read (cb) {
+  _read () {
     if ((this._state & constants.state.READING) === 0) {
       this._state |= constants.state.READING
       binding.resume(this._handle)
     }
-
-    cb(null)
   }
 
   _predestroy () {
@@ -60,8 +58,8 @@ exports.ReadStream = class TTYReadStream extends Readable {
     TTYReadStream._streams.delete(this)
   }
 
-  _destroy (cb) {
-    if (this._state & constants.state.CLOSING) return cb(null)
+  _destroy (err, cb) {
+    if (this._state & constants.state.CLOSING) return cb(err)
     this._state |= constants.state.CLOSING
     this._pendingDestroy = cb
     binding.close(this._handle)
@@ -106,7 +104,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
 exports.WriteStream = class TTYWriteStream extends Writable {
   constructor (fd, opts = {}) {
-    super({ mapWritable })
+    super()
 
     this._state = 0
 
@@ -130,9 +128,9 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     return binding.getWindowSize(this._handle)
   }
 
-  _writev (datas, cb) {
-    this._pendingWrite = [cb, datas]
-    binding.writev(this._handle, datas)
+  _writev (batch, cb) {
+    this._pendingWrite = [cb, batch]
+    binding.writev(this._handle, batch.map(({ chunk }) => chunk))
   }
 
   _predestroy () {
@@ -142,8 +140,8 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     TTYWriteStream._streams.delete(this)
   }
 
-  _destroy (cb) {
-    if (this._state & constants.state.CLOSING) return cb(null)
+  _destroy (err, cb) {
+    if (this._state & constants.state.CLOSING) return cb(err)
     this._state |= constants.state.CLOSING
     this._pendingDestroy = cb
     binding.close(this._handle)
@@ -196,7 +194,3 @@ Bare
 const empty = Buffer.alloc(0)
 
 function noop () {}
-
-function mapWritable (buf) {
-  return typeof buf === 'string' ? Buffer.from(buf) : buf
-}
