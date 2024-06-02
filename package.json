@@ -31,6 +31,7 @@
   "homepage": "https://github.com/holepunchto/bare-tty#readme",
   "dependencies": {
     "bare-events": "^2.2.0",
+    "bare-signals": "^2.2.0",
     "bare-stream": "^2.0.0"
   },
   "devDependencies": {

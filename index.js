@@ -1,5 +1,6 @@
 /* global Bare */
 const { Readable, Writable } = require('bare-stream')
+const Signal = require('bare-signals')
 const binding = require('./binding')
 const constants = require('./lib/constants')
 
@@ -107,6 +108,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     super()
 
     this._state = 0
+    this._size = null
 
     this._pendingWrite = null
     this._pendingDestroy = null
@@ -117,11 +119,22 @@ exports.WriteStream = class TTYWriteStream extends Writable {
       this._onclose
     )
 
+    this._size = this.getWindowSize()
+
+    if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.start()
     TTYWriteStream._streams.add(this)
   }
 
   get isTTY () {
     return true
+  }
+
+  get columns () {
+    return this._size[0]
+  }
+
+  get rows () {
+    return this._size[1]
   }
 
   getWindowSize () {
@@ -138,6 +151,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._state |= constants.state.CLOSING
     binding.close(this._handle)
     TTYWriteStream._streams.delete(this)
+    if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.stop()
   }
 
   _destroy (err, cb) {
@@ -146,6 +160,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._pendingDestroy = cb
     binding.close(this._handle)
     TTYWriteStream._streams.delete(this)
+    if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.stop()
   }
 
   _continueWrite (err) {
@@ -171,7 +186,14 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._continueDestroy()
   }
 
+  _onresize () {
+    this._size = this.getWindowSize()
+    this.emit('resize')
+  }
+
   static _streams = new Set()
+
+  static _resize = new Signal('SIGWINCH')
 }
 
 exports.constants = constants
@@ -179,6 +201,14 @@ exports.constants = constants
 exports.isTTY = binding.isTTY
 
 exports.isatty = exports.isTTY // For Node.js compatibility
+
+exports.WriteStream._resize
+  .on('signal', () => {
+    for (const stream of exports.WriteStream._streams) {
+      stream._onresize()
+    }
+  })
+  .unref()
 
 Bare
   .on('exit', () => {
