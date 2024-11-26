@@ -19,6 +19,9 @@ typedef struct {
   js_ref_t *on_write;
   js_ref_t *on_read;
   js_ref_t *on_close;
+
+  js_deferred_teardown_t *teardown;
+  bool exiting;
 } bare_tty_t;
 
 static void
@@ -126,6 +129,8 @@ bare_tty__on_close(uv_handle_t *handle) {
 
   js_env_t *env = tty->env;
 
+  if (tty->exiting) goto finalize;
+
   js_handle_scope_t *scope;
   err = js_open_handle_scope(env, &scope);
   assert(err == 0);
@@ -140,6 +145,13 @@ bare_tty__on_close(uv_handle_t *handle) {
 
   js_call_function(env, ctx, callback, 0, NULL, NULL);
 
+  err = js_close_handle_scope(env, scope);
+  assert(err == 0);
+
+finalize:
+  err = js_finish_deferred_teardown_callback(tty->teardown);
+  assert(err == 0);
+
   err = js_delete_reference(env, tty->on_write);
   assert(err == 0);
 
@@ -151,9 +163,15 @@ bare_tty__on_close(uv_handle_t *handle) {
 
   err = js_delete_reference(env, tty->ctx);
   assert(err == 0);
+}
 
-  err = js_close_handle_scope(env, scope);
-  assert(err == 0);
+static void
+bare_tty__on_teardown(js_deferred_teardown_t *handle, void *data) {
+  bare_tty_t *tty = (bare_tty_t *) data;
+
+  tty->exiting = true;
+
+  uv_close((uv_handle_t *) &tty->handle, bare_tty__on_close);
 }
 
 static void
@@ -201,6 +219,7 @@ bare_tty_init(js_env_t *env, js_callback_info_t *info) {
   (void) err;
 
   tty->env = env;
+  tty->exiting = false;
 
   err = js_get_typedarray_info(env, argv[1], NULL, (void **) &tty->read.base, (size_t *) &tty->read.len, NULL, NULL);
   assert(err == 0);
@@ -215,6 +234,9 @@ bare_tty_init(js_env_t *env, js_callback_info_t *info) {
   assert(err == 0);
 
   err = js_create_reference(env, argv[5], 1, &tty->on_close);
+  assert(err == 0);
+
+  err = js_add_deferred_teardown_callback(env, bare_tty__on_teardown, (void *) tty, &tty->teardown);
   assert(err == 0);
 
   return handle;
