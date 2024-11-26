@@ -6,9 +6,7 @@ test('stdout', { skip: !tty.isTTY(1) }, (t) => {
 
   const stdout = new tty.WriteStream(1)
 
-  stdout
-    .on('close', () => t.pass('closed'))
-    .end('hello from pipe\n')
+  stdout.on('close', () => t.pass('closed')).end('hello from pipe\n')
 })
 
 test('stderr', { skip: !tty.isTTY(2) }, (t) => {
@@ -16,7 +14,5 @@ test('stderr', { skip: !tty.isTTY(2) }, (t) => {
 
   const stdout = new tty.WriteStream(2)
 
-  stdout
-    .on('close', () => t.pass('closed'))
-    .end('hello from pipe\n')
+  stdout.on('close', () => t.pass('closed')).end('hello from pipe\n')
 })

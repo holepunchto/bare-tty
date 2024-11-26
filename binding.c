@@ -22,7 +22,7 @@ typedef struct {
 } bare_tty_t;
 
 static void
-bare_tty__on_write (uv_write_t *req, int status) {
+bare_tty__on_write(uv_write_t *req, int status) {
   int err;
 
   bare_tty_t *tty = (bare_tty_t *) req->data;
@@ -66,7 +66,7 @@ bare_tty__on_write (uv_write_t *req, int status) {
 }
 
 static void
-bare_tty__on_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
+bare_tty__on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
   if (nread == UV_EOF) nread = 0;
   else if (nread == 0) return;
 
@@ -119,7 +119,7 @@ bare_tty__on_read (uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
 }
 
 static void
-bare_tty__on_close (uv_handle_t *handle) {
+bare_tty__on_close(uv_handle_t *handle) {
   int err;
 
   bare_tty_t *tty = (bare_tty_t *) handle;
@@ -157,14 +157,14 @@ bare_tty__on_close (uv_handle_t *handle) {
 }
 
 static void
-bare_tty__on_alloc (uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
+bare_tty__on_alloc(uv_handle_t *handle, size_t suggested_size, uv_buf_t *buf) {
   bare_tty_t *tty = (bare_tty_t *) handle;
 
   *buf = tty->read;
 }
 
 static js_value_t *
-bare_tty_init (js_env_t *env, js_callback_info_t *info) {
+bare_tty_init(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 6;
@@ -221,7 +221,7 @@ bare_tty_init (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_tty_writev (js_env_t *env, js_callback_info_t *info) {
+bare_tty_writev(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 2;
@@ -271,7 +271,7 @@ bare_tty_writev (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_tty_resume (js_env_t *env, js_callback_info_t *info) {
+bare_tty_resume(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -297,7 +297,7 @@ bare_tty_resume (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_tty_pause (js_env_t *env, js_callback_info_t *info) {
+bare_tty_pause(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -323,7 +323,7 @@ bare_tty_pause (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_tty_close (js_env_t *env, js_callback_info_t *info) {
+bare_tty_close(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -350,7 +350,7 @@ bare_tty_close (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_tty_set_mode (js_env_t *env, js_callback_info_t *info) {
+bare_tty_set_mode(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 2;
@@ -380,7 +380,7 @@ bare_tty_set_mode (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_tty_get_window_size (js_env_t *env, js_callback_info_t *info) {
+bare_tty_get_window_size(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -425,7 +425,7 @@ bare_tty_get_window_size (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_tty_is_tty (js_env_t *env, js_callback_info_t *info) {
+bare_tty_is_tty(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -448,7 +448,7 @@ bare_tty_is_tty (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_tty_exports (js_env_t *env, js_value_t *exports) {
+bare_tty_exports(js_env_t *env, js_value_t *exports) {
   int err;
 
 #define V(name, fn) \

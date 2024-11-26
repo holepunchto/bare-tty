@@ -7,13 +7,11 @@ const constants = require('./lib/constants')
 const defaultReadBufferSize = 65536
 
 exports.ReadStream = class TTYReadStream extends Readable {
-  constructor (fd, opts = {}) {
+  constructor(fd, opts = {}) {
     super()
 
-    const {
-      readBufferSize = defaultReadBufferSize,
-      allowHalfOpen = true
-    } = opts
+    const { readBufferSize = defaultReadBufferSize, allowHalfOpen = true } =
+      opts
 
     this._state = 0
 
@@ -23,7 +21,10 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
     this._buffer = Buffer.alloc(readBufferSize)
 
-    this._handle = binding.init(fd, this._buffer, this,
+    this._handle = binding.init(
+      fd,
+      this._buffer,
+      this,
       noop,
       this._onread,
       this._onclose
@@ -32,34 +33,34 @@ exports.ReadStream = class TTYReadStream extends Readable {
     TTYReadStream._streams.add(this)
   }
 
-  get isTTY () {
+  get isTTY() {
     return true
   }
 
-  setMode (mode) {
+  setMode(mode) {
     binding.setMode(this._handle, mode)
     return this
   }
 
-  setRawMode (mode) {
+  setRawMode(mode) {
     return this.setMode(mode ? constants.mode.RAW : constants.mode.NORMAL)
   }
 
-  _read () {
+  _read() {
     if ((this._state & constants.state.READING) === 0) {
       this._state |= constants.state.READING
       binding.resume(this._handle)
     }
   }
 
-  _predestroy () {
+  _predestroy() {
     if (this._state & constants.state.CLOSING) return
     this._state |= constants.state.CLOSING
     binding.close(this._handle)
     TTYReadStream._streams.delete(this)
   }
 
-  _destroy (err, cb) {
+  _destroy(err, cb) {
     if (this._state & constants.state.CLOSING) return cb(err)
     this._state |= constants.state.CLOSING
     this._pendingDestroy = cb
@@ -67,14 +68,14 @@ exports.ReadStream = class TTYReadStream extends Readable {
     TTYReadStream._streams.delete(this)
   }
 
-  _continueDestroy () {
+  _continueDestroy() {
     if (this._pendingDestroy === null) return
     const cb = this._pendingDestroy
     this._pendingDestroy = null
     cb(null)
   }
 
-  _onread (err, read) {
+  _onread(err, read) {
     if (err) {
       this.destroy(err)
       return
@@ -95,7 +96,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
     }
   }
 
-  _onclose () {
+  _onclose() {
     this._handle = null
     this._continueDestroy()
   }
@@ -104,7 +105,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
 }
 
 exports.WriteStream = class TTYWriteStream extends Writable {
-  constructor (fd, opts = {}) {
+  constructor(fd, opts = {}) {
     super()
 
     this._state = 0
@@ -113,7 +114,10 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._pendingWrite = null
     this._pendingDestroy = null
 
-    this._handle = binding.init(fd, empty, this,
+    this._handle = binding.init(
+      fd,
+      empty,
+      this,
       this._onwrite,
       noop,
       this._onclose
@@ -125,28 +129,31 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     TTYWriteStream._streams.add(this)
   }
 
-  get isTTY () {
+  get isTTY() {
     return true
   }
 
-  get columns () {
+  get columns() {
     return this._size[0]
   }
 
-  get rows () {
+  get rows() {
     return this._size[1]
   }
 
-  getWindowSize () {
+  getWindowSize() {
     return binding.getWindowSize(this._handle)
   }
 
-  _writev (batch, cb) {
+  _writev(batch, cb) {
     this._pendingWrite = [cb, batch]
-    binding.writev(this._handle, batch.map(({ chunk }) => chunk))
+    binding.writev(
+      this._handle,
+      batch.map(({ chunk }) => chunk)
+    )
   }
 
-  _predestroy () {
+  _predestroy() {
     if (this._state & constants.state.CLOSING) return
     this._state |= constants.state.CLOSING
     binding.close(this._handle)
@@ -154,7 +161,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.stop()
   }
 
-  _destroy (err, cb) {
+  _destroy(err, cb) {
     if (this._state & constants.state.CLOSING) return cb(err)
     this._state |= constants.state.CLOSING
     this._pendingDestroy = cb
@@ -163,30 +170,30 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.stop()
   }
 
-  _continueWrite (err) {
+  _continueWrite(err) {
     if (this._pendingWrite === null) return
     const cb = this._pendingWrite[0]
     this._pendingWrite = null
     cb(err)
   }
 
-  _continueDestroy () {
+  _continueDestroy() {
     if (this._pendingDestroy === null) return
     const cb = this._pendingDestroy
     this._pendingDestroy = null
     cb(null)
   }
 
-  _onwrite (err) {
+  _onwrite(err) {
     this._continueWrite(err)
   }
 
-  _onclose () {
+  _onclose() {
     this._handle = null
     this._continueDestroy()
   }
 
-  _onresize () {
+  _onresize() {
     this._size = this.getWindowSize()
     this.emit('resize')
   }
@@ -210,17 +217,16 @@ exports.WriteStream._resize
   })
   .unref()
 
-Bare
-  .on('exit', () => {
-    for (const stream of exports.ReadStream._streams) {
-      stream.destroy()
-    }
+Bare.on('exit', () => {
+  for (const stream of exports.ReadStream._streams) {
+    stream.destroy()
+  }
 
-    for (const stream of exports.WriteStream._streams) {
-      stream.destroy()
-    }
-  })
+  for (const stream of exports.WriteStream._streams) {
+    stream.destroy()
+  }
+})
 
 const empty = Buffer.alloc(0)
 
-function noop () {}
+function noop() {}
