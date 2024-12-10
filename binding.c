@@ -20,8 +20,10 @@ typedef struct {
   js_ref_t *on_read;
   js_ref_t *on_close;
 
-  js_deferred_teardown_t *teardown;
+  bool closing;
   bool exiting;
+
+  js_deferred_teardown_t *teardown;
 } bare_tty_t;
 
 static void
@@ -29,6 +31,8 @@ bare_tty__on_write(uv_write_t *req, int status) {
   int err;
 
   bare_tty_t *tty = (bare_tty_t *) req->data;
+
+  if (tty->exiting) return;
 
   js_env_t *env = tty->env;
 
@@ -76,6 +80,8 @@ bare_tty__on_read(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) {
   int err;
 
   bare_tty_t *tty = (bare_tty_t *) stream;
+
+  if (tty->exiting) return;
 
   js_env_t *env = tty->env;
 
@@ -129,7 +135,7 @@ bare_tty__on_close(uv_handle_t *handle) {
 
   js_env_t *env = tty->env;
 
-  if (tty->exiting) goto finalize;
+  js_deferred_teardown_t *teardown = tty->teardown;
 
   js_handle_scope_t *scope;
   err = js_open_handle_scope(env, &scope);
@@ -143,15 +149,6 @@ bare_tty__on_close(uv_handle_t *handle) {
   err = js_get_reference_value(env, tty->on_close, &callback);
   assert(err == 0);
 
-  js_call_function(env, ctx, callback, 0, NULL, NULL);
-
-  err = js_close_handle_scope(env, scope);
-  assert(err == 0);
-
-finalize:
-  err = js_finish_deferred_teardown_callback(tty->teardown);
-  assert(err == 0);
-
   err = js_delete_reference(env, tty->on_write);
   assert(err == 0);
 
@@ -163,6 +160,14 @@ finalize:
 
   err = js_delete_reference(env, tty->ctx);
   assert(err == 0);
+
+  if (!tty->exiting) js_call_function(env, ctx, callback, 0, NULL, NULL);
+
+  err = js_close_handle_scope(env, scope);
+  assert(err == 0);
+
+  err = js_finish_deferred_teardown_callback(teardown);
+  assert(err == 0);
 }
 
 static void
@@ -170,6 +175,8 @@ bare_tty__on_teardown(js_deferred_teardown_t *handle, void *data) {
   bare_tty_t *tty = (bare_tty_t *) data;
 
   tty->exiting = true;
+
+  if (tty->closing) return;
 
   uv_close((uv_handle_t *) &tty->handle, bare_tty__on_close);
 }
@@ -194,7 +201,8 @@ bare_tty_init(js_env_t *env, js_callback_info_t *info) {
   assert(argc == 6);
 
   uv_loop_t *loop;
-  js_get_env_loop(env, &loop);
+  err = js_get_env_loop(env, &loop);
+  assert(err == 0);
 
   js_value_t *handle;
 
@@ -219,6 +227,7 @@ bare_tty_init(js_env_t *env, js_callback_info_t *info) {
   (void) err;
 
   tty->env = env;
+  tty->closing = false;
   tty->exiting = false;
 
   err = js_get_typedarray_info(env, argv[1], NULL, (void **) &tty->read.base, (size_t *) &tty->read.len, NULL, NULL);
@@ -365,6 +374,8 @@ bare_tty_close(js_env_t *env, js_callback_info_t *info) {
   // Resetting the mode won't always work, in particular on Windows when we
   // close an output stream.
   (void) err;
+
+  tty->closing = true;
 
   uv_close((uv_handle_t *) &tty->handle, bare_tty__on_close);
 
