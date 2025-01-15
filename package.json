@@ -3,12 +3,16 @@
   "version": "5.0.1",
   "description": "Native TTY streams for JavaScript",
   "exports": {
-    ".": "./index.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
     "./package": "./package.json",
     "./constants": "./lib/constants.js"
   },
   "files": [
     "index.js",
+    "index.d.ts",
     "binding.c",
     "binding.js",
     "CMakeLists.txt",
