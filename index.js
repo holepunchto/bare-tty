@@ -40,8 +40,8 @@ exports.ReadStream = class TTYReadStream extends Readable {
     return this
   }
 
-  setRawMode(mode) {
-    return this.setMode(mode ? constants.mode.RAW : constants.mode.NORMAL)
+  setRawMode(enabled) {
+    return this.setMode(enabled ? constants.mode.RAW : constants.mode.NORMAL)
   }
 
   _read() {
