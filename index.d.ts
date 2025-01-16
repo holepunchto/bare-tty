@@ -9,7 +9,7 @@ import {
 interface ReadStream extends Readable {
   readonly isTTY: true
 
-  setMode(mode: boolean): this
+  setMode(mode: number): this
 
   setRawMode(mode: boolean): this
 }
