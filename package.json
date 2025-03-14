@@ -1,6 +1,6 @@
 {
   "name": "bare-tty",
-  "version": "5.0.1",
+  "version": "5.0.2-0",
   "description": "Native TTY streams for JavaScript",
   "exports": {
     ".": {
@@ -34,7 +34,7 @@
   },
   "homepage": "https://github.com/holepunchto/bare-tty#readme",
   "engines": {
-    "bare": ">=1.7.0"
+    "bare": ">=1.16.0"
   },
   "dependencies": {
     "bare-events": "^2.2.0",
