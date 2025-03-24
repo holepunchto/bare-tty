@@ -1,6 +1,6 @@
 {
   "name": "bare-tty",
-  "version": "5.0.2-0",
+  "version": "5.0.2",
   "description": "Native TTY streams for JavaScript",
   "exports": {
     ".": {
