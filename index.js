@@ -1,4 +1,3 @@
-/* global Bare */
 const { Readable, Writable } = require('bare-stream')
 const Signal = require('bare-signals')
 const binding = require('./binding')
