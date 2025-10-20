@@ -5,12 +5,12 @@ import {
   WritableEvents,
   WritableOptions
 } from 'bare-stream'
+import constants from './lib/constants'
 
 interface ReadStream extends Readable {
   readonly isTTY: true
 
   setMode(mode: number): this
-
   setRawMode(mode: boolean): this
 }
 
@@ -38,10 +38,5 @@ declare class WriteStream<
 }
 
 declare function isTTY(fd: number): boolean
-
-declare const constants: {
-  mode: { NORMAL: number; RAW: number; IO: number }
-  state: { READING: number; CLOSING: number }
-}
 
 export { ReadStream, WriteStream, isTTY, isTTY as isatty, constants }

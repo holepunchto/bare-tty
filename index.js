@@ -4,6 +4,7 @@ const binding = require('./binding')
 const constants = require('./lib/constants')
 
 const defaultReadBufferSize = 65536
+const empty = Buffer.alloc(0)
 
 exports.ReadStream = class TTYReadStream extends Readable {
   constructor(fd, opts = {}) {
@@ -46,6 +47,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
   _read() {
     if ((this._state & constants.state.READING) === 0) {
       this._state |= constants.state.READING
+
       binding.resume(this._handle)
     }
   }
@@ -53,13 +55,16 @@ exports.ReadStream = class TTYReadStream extends Readable {
   _predestroy() {
     if (this._state & constants.state.CLOSING) return
     this._state |= constants.state.CLOSING
+
     binding.close(this._handle)
   }
 
   _destroy(err, cb) {
     if (this._state & constants.state.CLOSING) return cb(err)
     this._state |= constants.state.CLOSING
+
     this._pendingDestroy = cb
+
     binding.close(this._handle)
   }
 
@@ -87,12 +92,14 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
     if (this.push(copy) === false && this.destroying === false) {
       this._state &= ~constants.state.READING
+
       binding.pause(this._handle)
     }
   }
 
   _onclose() {
     this._handle = null
+
     this._continueDestroy()
   }
 }
@@ -119,6 +126,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._size = this.getWindowSize()
 
     if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.start()
+
     TTYWriteStream._streams.add(this)
   }
 
@@ -140,6 +148,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
 
   _writev(batch, cb) {
     this._pendingWrite = [cb, batch]
+
     binding.writev(
       this._handle,
       batch.map(({ chunk }) => chunk)
@@ -149,17 +158,24 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   _predestroy() {
     if (this._state & constants.state.CLOSING) return
     this._state |= constants.state.CLOSING
+
     binding.close(this._handle)
+
     TTYWriteStream._streams.delete(this)
+
     if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.stop()
   }
 
   _destroy(err, cb) {
     if (this._state & constants.state.CLOSING) return cb(err)
     this._state |= constants.state.CLOSING
+
     this._pendingDestroy = cb
+
     binding.close(this._handle)
+
     TTYWriteStream._streams.delete(this)
+
     if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.stop()
   }
 
@@ -183,11 +199,13 @@ exports.WriteStream = class TTYWriteStream extends Writable {
 
   _onclose() {
     this._handle = null
+
     this._continueDestroy()
   }
 
   _onresize() {
     this._size = this.getWindowSize()
+
     this.emit('resize')
   }
 
@@ -209,7 +227,5 @@ exports.WriteStream._resize
     }
   })
   .unref()
-
-const empty = Buffer.alloc(0)
 
 function noop() {}
