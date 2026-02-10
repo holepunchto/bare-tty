@@ -1,10 +1,4 @@
-import {
-  Readable,
-  ReadableOptions,
-  Writable,
-  WritableEvents,
-  WritableOptions
-} from 'bare-stream'
+import { Readable, ReadableOptions, Writable, WritableEvents, WritableOptions } from 'bare-stream'
 import constants from './lib/constants'
 
 interface ReadStream extends Readable {
@@ -22,8 +16,7 @@ interface WriteStreamEvents extends WritableEvents {
   resize: []
 }
 
-interface WriteStream<M extends WriteStreamEvents = WriteStreamEvents>
-  extends Writable<M> {
+interface WriteStream<M extends WriteStreamEvents = WriteStreamEvents> extends Writable<M> {
   readonly isTTY: true
   readonly columns: number
   readonly rows: number
@@ -31,9 +24,7 @@ interface WriteStream<M extends WriteStreamEvents = WriteStreamEvents>
   getWindowSize(): [width: number, height: number]
 }
 
-declare class WriteStream<
-  M extends WriteStreamEvents = WriteStreamEvents
-> extends Writable<M> {
+declare class WriteStream<M extends WriteStreamEvents = WriteStreamEvents> extends Writable<M> {
   constructor(fd: number, opts?: WritableOptions)
 }
 
