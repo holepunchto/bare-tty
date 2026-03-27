@@ -2,6 +2,7 @@ import { Readable, ReadableOptions, Writable, WritableEvents, WritableOptions } 
 import constants from './lib/constants'
 
 interface ReadStream extends Readable {
+  readonly fd: number
   readonly isTTY: true
 
   setMode(mode: number): this
@@ -17,6 +18,7 @@ interface WriteStreamEvents extends WritableEvents {
 }
 
 interface WriteStream<M extends WriteStreamEvents = WriteStreamEvents> extends Writable<M> {
+  readonly fd: number
   readonly isTTY: true
   readonly columns: number
   readonly rows: number

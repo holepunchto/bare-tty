@@ -12,15 +12,18 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
     const { readBufferSize = defaultReadBufferSize, allowHalfOpen = true } = opts
 
+    this._fd = fd
     this._state = 0
-
     this._allowHalfOpen = allowHalfOpen
+    this._buffer = Buffer.alloc(readBufferSize)
 
     this._pendingDestroy = null
 
-    this._buffer = Buffer.alloc(readBufferSize)
-
     this._handle = binding.init(fd, this._buffer, this, noop, this._onread, this._onclose)
+  }
+
+  get fd() {
+    return this._fd
   }
 
   get isTTY() {
@@ -100,6 +103,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   constructor(fd, opts = {}) {
     super()
 
+    this._fd = fd
     this._state = 0
     this._size = null
 
@@ -113,6 +117,10 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.start()
 
     TTYWriteStream._streams.add(this)
+  }
+
+  get fd() {
+    return this._fd
   }
 
   get isTTY() {
