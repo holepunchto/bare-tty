@@ -108,6 +108,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._size = null
 
     this._pendingWrite = null
+    this._pendingWriteBatch = null
     this._pendingDestroy = null
 
     this._handle = binding.init(fd, empty, this, this._onwrite, noop, this._onclose)
@@ -140,7 +141,8 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   _writev(batch, cb) {
-    this._pendingWrite = [cb, batch]
+    this._pendingWrite = cb
+    this._pendingWriteBatch = batch
 
     binding.writev(
       this._handle,
@@ -174,8 +176,9 @@ exports.WriteStream = class TTYWriteStream extends Writable {
 
   _continueWrite(err) {
     if (this._pendingWrite === null) return
-    const cb = this._pendingWrite[0]
+    const cb = this._pendingWrite
     this._pendingWrite = null
+    this._pendingWriteBatch = null
     cb(err)
   }
 
