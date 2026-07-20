@@ -522,6 +522,11 @@ bare_tty_exports(js_env_t *env, js_value_t *exports) {
 
   V("MODE_NORMAL", UV_TTY_MODE_NORMAL)
   V("MODE_RAW", UV_TTY_MODE_RAW)
+#if UV_VERSION_HEX >= 0x013000 // libuv >= 1.48.0 introduced UV_TTY_MODE_RAW_VT
+  V("MODE_RAW_VT", UV_TTY_MODE_RAW_VT)
+#else
+  V("MODE_RAW_VT", UV_TTY_MODE_RAW) // fallback: behaves like RAW on old libuv
+#endif
 #ifndef _WIN32
   V("MODE_IO", UV_TTY_MODE_IO)
 #endif
