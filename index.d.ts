@@ -9,7 +9,10 @@ interface ReadStream extends Readable {
 
   /** Set the TTY mode directly, using one of the `constants.mode` values. Returns the stream. */
   setMode(mode: number): this
-  /** Enable or disable raw mode. In raw mode, input is delivered byte-by-byte without line buffering or special key processing. Returns the stream. */
+  /**
+   * Enable or disable raw mode. In raw mode, input is delivered byte-by-byte without line buffering
+   * or special key processing. Returns the stream.
+   */
   setRawMode(mode: boolean): this
 }
 
