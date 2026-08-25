@@ -1,5 +1,6 @@
 import { Readable, ReadableOptions, Writable, WritableEvents, WritableOptions } from 'bare-stream'
 import constants from './lib/constants'
+import TTYError from './lib/errors'
 
 interface ReadStream extends Readable {
   readonly fd: number
@@ -32,4 +33,12 @@ declare class WriteStream<M extends WriteStreamEvents = WriteStreamEvents> exten
 
 declare function isTTY(fd: number): boolean
 
-export { ReadStream, WriteStream, isTTY, isTTY as isatty, constants }
+export {
+  ReadStream,
+  WriteStream,
+  isTTY,
+  isTTY as isatty,
+  constants,
+  type TTYError,
+  TTYError as errors
+}

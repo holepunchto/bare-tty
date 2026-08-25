@@ -2,6 +2,7 @@ const { Readable, Writable } = require('bare-stream')
 const Signal = require('bare-signals')
 const binding = require('./binding')
 const constants = require('./lib/constants')
+const errors = require('./lib/errors')
 
 const defaultReadBufferSize = 65536
 const empty = Buffer.alloc(0)
@@ -11,6 +12,9 @@ exports.ReadStream = class TTYReadStream extends Readable {
     super()
 
     const { readBufferSize = defaultReadBufferSize, allowHalfOpen = true } = opts
+
+    validateFd(fd)
+    validateInteger(readBufferSize, 'Read buffer size', 1, 0x7fffffff)
 
     this._fd = fd
     this._state = 0
@@ -31,12 +35,23 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   setMode(mode) {
+    validateInteger(mode, 'Mode', 0, 0xffffffff)
+
+    this._alive()
+
     binding.setMode(this._handle, mode)
+
     return this
   }
 
   setRawMode(enabled) {
     return this.setMode(enabled ? constants.mode.RAW : constants.mode.NORMAL)
+  }
+
+  _alive() {
+    if (this._state & constants.state.CLOSING) {
+      throw errors.STREAM_IS_CLOSED('Stream is closed')
+    }
   }
 
   _read() {
@@ -93,8 +108,6 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   _onclose() {
-    this._handle = null
-
     this._continueDestroy()
   }
 }
@@ -102,6 +115,8 @@ exports.ReadStream = class TTYReadStream extends Readable {
 exports.WriteStream = class TTYWriteStream extends Writable {
   constructor(fd, opts = {}) {
     super()
+
+    validateFd(fd)
 
     this._fd = fd
     this._state = 0
@@ -113,7 +128,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
 
     this._handle = binding.init(fd, empty, this, this._onwrite, noop, this._onclose)
 
-    this._size = this.getWindowSize()
+    this._size = binding.getWindowSize(this._handle)
 
     if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.start()
 
@@ -137,7 +152,15 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   getWindowSize() {
+    this._alive()
+
     return binding.getWindowSize(this._handle)
+  }
+
+  _alive() {
+    if (this._state & constants.state.CLOSING) {
+      throw errors.STREAM_IS_CLOSED('Stream is closed')
+    }
   }
 
   _writev(batch, cb) {
@@ -198,8 +221,6 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   _onclose() {
-    this._handle = null
-
     this._continueDestroy()
   }
 
@@ -216,7 +237,13 @@ exports.WriteStream = class TTYWriteStream extends Writable {
 
 exports.constants = constants
 
-exports.isTTY = binding.isTTY
+exports.errors = errors
+
+exports.isTTY = function isTTY(fd) {
+  validateFd(fd)
+
+  return binding.isTTY(fd)
+}
 
 exports.isatty = exports.isTTY // For Node.js compatibility
 
@@ -227,5 +254,29 @@ exports.WriteStream._resize
     }
   })
   .unref()
+
+function validateFd(fd) {
+  if (typeof fd !== 'number') {
+    throw errors.INVALID_FD(`File descriptor must be a number, got ${typeof fd}`)
+  }
+
+  if (!Number.isInteger(fd) || fd < 0 || fd > 0x7fffffff) {
+    throw errors.INVALID_FD(
+      `File descriptor must be an integer between 0 and ${0x7fffffff}, got ${fd}`
+    )
+  }
+}
+
+function validateInteger(value, name, min, max) {
+  if (typeof value !== 'number') {
+    throw errors.INVALID_ARGUMENT(`${name} must be a number, got ${typeof value}`)
+  }
+
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw errors.INVALID_ARGUMENT(
+      `${name} must be an integer between ${min} and ${max}, got ${value}`
+    )
+  }
+}
 
 function noop() {}
