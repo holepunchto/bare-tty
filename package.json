@@ -1,14 +1,21 @@
 {
   "name": "bare-tty",
-  "version": "5.1.2",
+  "version": "5.1.3-0",
   "description": "Native TTY streams for JavaScript",
   "exports": {
+    "./package": "./package.json",
     ".": {
       "types": "./index.d.ts",
       "default": "./index.js"
     },
-    "./package": "./package.json",
-    "./constants": "./lib/constants.js"
+    "./constants": {
+      "types": "./lib/constants.d.ts",
+      "default": "./lib/constants.js"
+    },
+    "./errors": {
+      "types": "./lib/errors.d.ts",
+      "default": "./lib/errors.js"
+    }
   },
   "files": [
     "index.js",
