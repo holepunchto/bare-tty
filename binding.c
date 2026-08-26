@@ -9,7 +9,6 @@ typedef struct {
 
   struct {
     uv_write_t write;
-    uv_shutdown_t shutdown;
   } requests;
 
   uv_buf_t read;
@@ -192,13 +191,13 @@ static js_value_t *
 bare_tty_init(js_env_t *env, js_callback_info_t *info) {
   int err;
 
-  size_t argc = 6;
-  js_value_t *argv[6];
+  size_t argc = 7;
+  js_value_t *argv[7];
 
   err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
   assert(err == 0);
 
-  assert(argc == 6);
+  assert(argc == 7);
 
   uv_loop_t *loop;
   err = js_get_env_loop(env, &loop);
@@ -223,10 +222,16 @@ bare_tty_init(js_env_t *env, js_callback_info_t *info) {
     return NULL;
   }
 
-  err = uv_stream_set_blocking((uv_stream_t *) &tty->handle, true);
+  bool blocking;
+  err = js_get_value_bool(env, argv[6], &blocking);
+  assert(err == 0);
 
-  // Not all platforms support blocking TTY handles.
-  (void) err;
+  if (blocking) {
+    err = uv_stream_set_blocking((uv_stream_t *) &tty->handle, true);
+
+    // Not all platforms support blocking TTY handles.
+    (void) err;
+  }
 
   tty->env = env;
   tty->closing = false;
@@ -282,7 +287,7 @@ bare_tty_writev(js_env_t *env, js_callback_info_t *info) {
 
   js_value_t **elements = malloc(sizeof(js_value_t *) * bufs_len);
 
-  if (bufs == NULL || elements == NULL) {
+  if ((bufs == NULL || elements == NULL) && bufs_len > 0) {
     free(bufs);
     free(elements);
 

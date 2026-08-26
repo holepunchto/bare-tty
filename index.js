@@ -6,24 +6,24 @@ const errors = require('./lib/errors')
 
 const defaultReadBufferSize = 65536
 const empty = Buffer.alloc(0)
+const modes = new Set([constants.mode.NORMAL, constants.mode.RAW, constants.mode.IO])
 
 exports.ReadStream = class TTYReadStream extends Readable {
   constructor(fd, opts = {}) {
-    super()
+    super(opts)
 
-    const { readBufferSize = defaultReadBufferSize, allowHalfOpen = true } = opts
+    const { readBufferSize = defaultReadBufferSize } = opts
 
     validateFd(fd)
     validateInteger(readBufferSize, 'Read buffer size', 1, 0x7fffffff)
 
     this._fd = fd
     this._state = 0
-    this._allowHalfOpen = allowHalfOpen
     this._buffer = Buffer.alloc(readBufferSize)
 
     this._pendingDestroy = null
 
-    this._handle = binding.init(fd, this._buffer, this, noop, this._onread, this._onclose)
+    this._handle = binding.init(fd, this._buffer, this, noop, this._onread, this._onclose, false)
   }
 
   get fd() {
@@ -35,7 +35,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   setMode(mode) {
-    validateInteger(mode, 'Mode', 0, 0xffffffff)
+    validateMode(mode)
 
     this._alive()
 
@@ -63,17 +63,20 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   _predestroy() {
-    if (this._state & constants.state.CLOSING) return
-    this._state |= constants.state.CLOSING
-
-    binding.close(this._handle)
+    this._close()
   }
 
   _destroy(err, cb) {
-    if (this._state & constants.state.CLOSING) return cb(err)
-    this._state |= constants.state.CLOSING
+    if (this._state & constants.state.CLOSED) return cb(err)
 
     this._pendingDestroy = cb
+
+    this._close()
+  }
+
+  _close() {
+    if (this._state & constants.state.CLOSING) return
+    this._state |= constants.state.CLOSING
 
     binding.close(this._handle)
   }
@@ -93,7 +96,6 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
     if (read === 0) {
       this.push(null)
-      if (this._allowHalfOpen === false) this.end()
       return
     }
 
@@ -108,13 +110,15 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   _onclose() {
+    this._state |= constants.state.CLOSED
+
     this._continueDestroy()
   }
 }
 
 exports.WriteStream = class TTYWriteStream extends Writable {
   constructor(fd, opts = {}) {
-    super()
+    super(opts)
 
     validateFd(fd)
 
@@ -126,9 +130,15 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._pendingWriteBatch = null
     this._pendingDestroy = null
 
-    this._handle = binding.init(fd, empty, this, this._onwrite, noop, this._onclose)
+    this._handle = binding.init(fd, empty, this, this._onwrite, noop, this._onclose, true)
 
-    this._size = binding.getWindowSize(this._handle)
+    try {
+      this._refreshSize()
+    } catch (err) {
+      this._close()
+
+      throw err
+    }
 
     if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.start()
 
@@ -154,7 +164,17 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   getWindowSize() {
     this._alive()
 
-    return binding.getWindowSize(this._handle)
+    return [this._size[0], this._size[1]]
+  }
+
+  _refreshSize() {
+    const size = binding.getWindowSize(this._handle)
+
+    const changed = this._size === null || size[0] !== this._size[0] || size[1] !== this._size[1]
+
+    this._size = size
+
+    return changed
   }
 
   _alive() {
@@ -168,6 +188,8 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._pendingWriteBatch = batch
 
     try {
+      coerceBatch(batch)
+
       binding.writev(
         this._handle,
         batch.map(({ chunk }) => chunk)
@@ -178,21 +200,20 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   _predestroy() {
-    if (this._state & constants.state.CLOSING) return
-    this._state |= constants.state.CLOSING
-
-    binding.close(this._handle)
-
-    TTYWriteStream._streams.delete(this)
-
-    if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.stop()
+    this._close()
   }
 
   _destroy(err, cb) {
-    if (this._state & constants.state.CLOSING) return cb(err)
-    this._state |= constants.state.CLOSING
+    if (this._state & constants.state.CLOSED) return cb(err)
 
     this._pendingDestroy = cb
+
+    this._close()
+  }
+
+  _close() {
+    if (this._state & constants.state.CLOSING) return
+    this._state |= constants.state.CLOSING
 
     binding.close(this._handle)
 
@@ -221,13 +242,22 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   _onclose() {
+    this._state |= constants.state.CLOSED
+
     this._continueDestroy()
   }
 
   _onresize() {
-    this._size = this.getWindowSize()
+    let changed
 
-    this.emit('resize')
+    try {
+      changed = this._refreshSize()
+    } catch (err) {
+      this.emit('error', err)
+      return
+    }
+
+    if (changed) this.emit('resize')
   }
 
   static _streams = new Set()
@@ -240,9 +270,7 @@ exports.constants = constants
 exports.errors = errors
 
 exports.isTTY = function isTTY(fd) {
-  validateFd(fd)
-
-  return binding.isTTY(fd)
+  return isValidFd(fd) && binding.isTTY(fd)
 }
 
 exports.isatty = exports.isTTY // For Node.js compatibility
@@ -255,15 +283,29 @@ exports.WriteStream._resize
   })
   .unref()
 
+function isValidFd(fd) {
+  return typeof fd === 'number' && Number.isInteger(fd) && fd >= 0 && fd <= 0x7fffffff
+}
+
 function validateFd(fd) {
   if (typeof fd !== 'number') {
     throw errors.INVALID_FD(`File descriptor must be a number, got ${typeof fd}`)
   }
 
-  if (!Number.isInteger(fd) || fd < 0 || fd > 0x7fffffff) {
+  if (!isValidFd(fd)) {
     throw errors.INVALID_FD(
       `File descriptor must be an integer between 0 and ${0x7fffffff}, got ${fd}`
     )
+  }
+}
+
+function validateMode(mode) {
+  if (typeof mode !== 'number') {
+    throw errors.INVALID_ARGUMENT(`Mode must be a number, got ${typeof mode}`)
+  }
+
+  if (!modes.has(mode)) {
+    throw errors.INVALID_ARGUMENT(`Mode must be one of ${[...modes].join(', ')}, got ${mode}`)
   }
 }
 
@@ -276,6 +318,18 @@ function validateInteger(value, name, min, max) {
     throw errors.INVALID_ARGUMENT(
       `${name} must be an integer between ${min} and ${max}, got ${value}`
     )
+  }
+}
+
+function coerceBatch(batch) {
+  for (let i = 0; i < batch.length; i++) {
+    const chunk = batch[i].chunk
+
+    if (ArrayBuffer.isView(chunk) === false) {
+      throw errors.INVALID_ARGUMENT(`Chunk must be a string or a view, got ${typeof chunk}`)
+    }
+
+    batch[i].chunk = Buffer.coerce(chunk)
   }
 }
 
