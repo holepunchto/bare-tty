@@ -188,6 +188,8 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._pendingWriteBatch = batch
 
     try {
+      coerceBatch(batch)
+
       binding.writev(
         this._handle,
         batch.map(({ chunk }) => chunk)
@@ -316,6 +318,18 @@ function validateInteger(value, name, min, max) {
     throw errors.INVALID_ARGUMENT(
       `${name} must be an integer between ${min} and ${max}, got ${value}`
     )
+  }
+}
+
+function coerceBatch(batch) {
+  for (let i = 0; i < batch.length; i++) {
+    const chunk = batch[i].chunk
+
+    if (ArrayBuffer.isView(chunk) === false) {
+      throw errors.INVALID_ARGUMENT(`Chunk must be a string or a view, got ${typeof chunk}`)
+    }
+
+    batch[i].chunk = Buffer.coerce(chunk)
   }
 }
 

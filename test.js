@@ -157,10 +157,10 @@ test('write stream, ending reaches close', { skip: !tty.isTTY(1) }, (t) => {
 })
 
 test('read stream, a read that fills the buffer leaves the loop running', async (t) => {
-  // A read stream may be opened on a pipe, so this needs no terminal and runs
-  // everywhere. The child reads exactly one buffer's worth and then has to get
-  // back to its timer: if the descriptor were blocking, libuv would follow the
-  // full read with another one and stall the loop inside it.
+  // Where a read stream may be opened on a pipe this needs no terminal. The
+  // child reads exactly one buffer's worth and then has to get back to its
+  // timer: if the descriptor were blocking, libuv would follow the full read
+  // with another one and stall the loop inside it.
   const readBufferSize = 64
 
   const child = spawn(
@@ -170,15 +170,25 @@ test('read stream, a read that fills the buffer leaves the loop running', async 
       `
       const tty = require(${JSON.stringify(require.resolve('.'))})
 
-      const stdin = new tty.ReadStream(0, { readBufferSize: ${readBufferSize} })
+      let stdin = null
 
-      stdin.on('data', () => {})
+      try {
+        stdin = new tty.ReadStream(0, { readBufferSize: ${readBufferSize} })
+      } catch {
+        // Windows only backs a tty handle with a console, so there is no pipe
+        // to read from there. Say so rather than failing.
+        Bare.exit(43)
+      }
 
-      setTimeout(() => {
-        stdin.destroy()
+      if (stdin !== null) {
+        stdin.on('data', () => {})
 
-        Bare.exit(42)
-      }, 500)
+        setTimeout(() => {
+          stdin.destroy()
+
+          Bare.exit(42)
+        }, 500)
+      }
       `
     ],
     { stdio: ['pipe', 'ignore', 'inherit'] }
@@ -199,5 +209,33 @@ test('read stream, a read that fills the buffer leaves the loop running', async 
 
   child.stdin.destroy()
 
+  if (code === 43) {
+    t.comment('a read stream cannot be opened on a pipe on this platform')
+
+    return
+  }
+
   t.is(code, 42, 'the child reached its timer instead of stalling')
+})
+
+test('write stream, coerces a view that is not a buffer', { skip: !tty.isTTY(1) }, (t) => {
+  t.plan(1)
+
+  const stream = new tty.WriteStream(1)
+
+  // Empty, so the terminal sees nothing, but it still has to survive being
+  // coerced on the way to the binding.
+  stream.on('close', () => t.pass('written')).end(new DataView(new ArrayBuffer(0)))
+})
+
+test('write stream, rejects a chunk that is not a view', { skip: !tty.isTTY(1) }, (t) => {
+  t.plan(1)
+
+  const stream = new tty.WriteStream(1)
+
+  // An array buffer is not a view, so there is nothing for the write request to
+  // point at. It has to fail the write rather than reach the binding.
+  stream.on('error', (err) => t.is(err.code, 'INVALID_ARGUMENT'))
+
+  stream.write(new ArrayBuffer(4))
 })
