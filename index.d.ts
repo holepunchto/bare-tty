@@ -2,6 +2,10 @@ import { Readable, ReadableOptions, Writable, WritableEvents, WritableOptions } 
 import constants from './lib/constants'
 import TTYError from './lib/errors'
 
+interface ReadStreamOptions extends ReadableOptions {
+  readBufferSize?: number
+}
+
 interface ReadStream extends Readable {
   readonly fd: number
   readonly isTTY: true
@@ -11,7 +15,7 @@ interface ReadStream extends Readable {
 }
 
 declare class ReadStream extends Readable {
-  constructor(fd: number, opts?: ReadableOptions)
+  constructor(fd: number, opts?: ReadStreamOptions)
 }
 
 interface WriteStreamEvents extends WritableEvents {
@@ -34,6 +38,7 @@ declare class WriteStream<M extends WriteStreamEvents = WriteStreamEvents> exten
 declare function isTTY(fd: number): boolean
 
 export {
+  type ReadStreamOptions,
   ReadStream,
   WriteStream,
   isTTY,

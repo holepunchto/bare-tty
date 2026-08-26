@@ -6,19 +6,19 @@ const errors = require('./lib/errors')
 
 const defaultReadBufferSize = 65536
 const empty = Buffer.alloc(0)
+const modes = new Set([constants.mode.NORMAL, constants.mode.RAW, constants.mode.IO])
 
 exports.ReadStream = class TTYReadStream extends Readable {
   constructor(fd, opts = {}) {
-    super()
+    super(opts)
 
-    const { readBufferSize = defaultReadBufferSize, allowHalfOpen = true } = opts
+    const { readBufferSize = defaultReadBufferSize } = opts
 
     validateFd(fd)
     validateInteger(readBufferSize, 'Read buffer size', 1, 0x7fffffff)
 
     this._fd = fd
     this._state = 0
-    this._allowHalfOpen = allowHalfOpen
     this._buffer = Buffer.alloc(readBufferSize)
 
     this._pendingDestroy = null
@@ -35,7 +35,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   setMode(mode) {
-    validateInteger(mode, 'Mode', 0, 0xffffffff)
+    validateMode(mode)
 
     this._alive()
 
@@ -93,7 +93,6 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
     if (read === 0) {
       this.push(null)
-      if (this._allowHalfOpen === false) this.end()
       return
     }
 
@@ -114,7 +113,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
 exports.WriteStream = class TTYWriteStream extends Writable {
   constructor(fd, opts = {}) {
-    super()
+    super(opts)
 
     validateFd(fd)
 
@@ -128,7 +127,15 @@ exports.WriteStream = class TTYWriteStream extends Writable {
 
     this._handle = binding.init(fd, empty, this, this._onwrite, noop, this._onclose)
 
-    this._size = binding.getWindowSize(this._handle)
+    try {
+      this._size = binding.getWindowSize(this._handle)
+    } catch (err) {
+      this._state |= constants.state.CLOSING
+
+      binding.close(this._handle)
+
+      throw err
+    }
 
     if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.start()
 
@@ -240,9 +247,7 @@ exports.constants = constants
 exports.errors = errors
 
 exports.isTTY = function isTTY(fd) {
-  validateFd(fd)
-
-  return binding.isTTY(fd)
+  return isValidFd(fd) && binding.isTTY(fd)
 }
 
 exports.isatty = exports.isTTY // For Node.js compatibility
@@ -255,15 +260,29 @@ exports.WriteStream._resize
   })
   .unref()
 
+function isValidFd(fd) {
+  return typeof fd === 'number' && Number.isInteger(fd) && fd >= 0 && fd <= 0x7fffffff
+}
+
 function validateFd(fd) {
   if (typeof fd !== 'number') {
     throw errors.INVALID_FD(`File descriptor must be a number, got ${typeof fd}`)
   }
 
-  if (!Number.isInteger(fd) || fd < 0 || fd > 0x7fffffff) {
+  if (!isValidFd(fd)) {
     throw errors.INVALID_FD(
       `File descriptor must be an integer between 0 and ${0x7fffffff}, got ${fd}`
     )
+  }
+}
+
+function validateMode(mode) {
+  if (typeof mode !== 'number') {
+    throw errors.INVALID_ARGUMENT(`Mode must be a number, got ${typeof mode}`)
+  }
+
+  if (!modes.has(mode)) {
+    throw errors.INVALID_ARGUMENT(`Mode must be one of ${[...modes].join(', ')}, got ${mode}`)
   }
 }
 

@@ -9,7 +9,6 @@ typedef struct {
 
   struct {
     uv_write_t write;
-    uv_shutdown_t shutdown;
   } requests;
 
   uv_buf_t read;
@@ -282,7 +281,7 @@ bare_tty_writev(js_env_t *env, js_callback_info_t *info) {
 
   js_value_t **elements = malloc(sizeof(js_value_t *) * bufs_len);
 
-  if (bufs == NULL || elements == NULL) {
+  if ((bufs == NULL || elements == NULL) && bufs_len > 0) {
     free(bufs);
     free(elements);
 

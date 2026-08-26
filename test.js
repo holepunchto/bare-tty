@@ -29,12 +29,12 @@ test('stderr', { skip: !tty.isTTY(2) }, (t) => {
   stdout.on('close', () => t.pass('closed')).end('hello from pipe\n')
 })
 
-test('isTTY rejects an invalid file descriptor', (t) => {
-  t.exception(() => tty.isTTY('1'), /INVALID_FD/)
-  t.exception(() => tty.isTTY({}), /INVALID_FD/)
-  t.exception(() => tty.isTTY(-1), /INVALID_FD/)
-  t.exception(() => tty.isTTY(1.5), /INVALID_FD/)
-  t.exception(() => tty.isatty('1'), /INVALID_FD/)
+test('isTTY returns false for an invalid file descriptor', (t) => {
+  t.is(tty.isTTY('1'), false)
+  t.is(tty.isTTY({}), false)
+  t.is(tty.isTTY(-1), false)
+  t.is(tty.isTTY(1.5), false)
+  t.is(tty.isatty('1'), false)
 })
 
 test('isTTY returns a boolean', (t) => {
@@ -61,6 +61,8 @@ test('read stream, setMode rejects an invalid mode', { skip: !canOpenStdin }, (t
   t.exception(() => stream.setMode('raw'), /INVALID_ARGUMENT/)
   t.exception(() => stream.setMode(null), /INVALID_ARGUMENT/)
   t.exception(() => stream.setMode(1.5), /INVALID_ARGUMENT/)
+  t.exception(() => stream.setMode(-1), /INVALID_ARGUMENT/)
+  t.exception(() => stream.setMode(0xffffffff), /INVALID_ARGUMENT/)
 
   stream.destroy()
 
@@ -90,6 +92,13 @@ test('read stream, destroying twice closes once', { skip: !canOpenStdin }, async
 
   // The stream's own state guard stops the second destroy short of the binding.
   t.pass('closed once')
+})
+
+test('write stream, non-terminal file descriptor', { skip: tty.isTTY(1) }, (t) => {
+  // The handle is created before the window size can be queried, so a failure
+  // here must not leave the handle behind.
+  t.exception(() => new tty.WriteStream(1))
+  t.is(tty.WriteStream._streams.size, 0, 'not registered for resize events')
 })
 
 test('write stream, window size', { skip: !tty.isTTY(1) }, (t) => {
