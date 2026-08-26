@@ -63,17 +63,20 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   _predestroy() {
-    if (this._state & constants.state.CLOSING) return
-    this._state |= constants.state.CLOSING
-
-    binding.close(this._handle)
+    this._close()
   }
 
   _destroy(err, cb) {
-    if (this._state & constants.state.CLOSING) return cb(err)
-    this._state |= constants.state.CLOSING
+    if (this._state & constants.state.CLOSED) return cb(err)
 
     this._pendingDestroy = cb
+
+    this._close()
+  }
+
+  _close() {
+    if (this._state & constants.state.CLOSING) return
+    this._state |= constants.state.CLOSING
 
     binding.close(this._handle)
   }
@@ -107,6 +110,8 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   _onclose() {
+    this._state |= constants.state.CLOSED
+
     this._continueDestroy()
   }
 }
@@ -128,11 +133,9 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._handle = binding.init(fd, empty, this, this._onwrite, noop, this._onclose)
 
     try {
-      this._size = binding.getWindowSize(this._handle)
+      this._refreshSize()
     } catch (err) {
-      this._state |= constants.state.CLOSING
-
-      binding.close(this._handle)
+      this._close()
 
       throw err
     }
@@ -161,7 +164,19 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   getWindowSize() {
     this._alive()
 
-    return binding.getWindowSize(this._handle)
+    this._refreshSize()
+
+    return [this._size[0], this._size[1]]
+  }
+
+  _refreshSize() {
+    const size = binding.getWindowSize(this._handle)
+
+    const changed = this._size === null || size[0] !== this._size[0] || size[1] !== this._size[1]
+
+    this._size = size
+
+    return changed
   }
 
   _alive() {
@@ -185,21 +200,20 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   _predestroy() {
-    if (this._state & constants.state.CLOSING) return
-    this._state |= constants.state.CLOSING
-
-    binding.close(this._handle)
-
-    TTYWriteStream._streams.delete(this)
-
-    if (TTYWriteStream._streams.size === 0) TTYWriteStream._resize.stop()
+    this._close()
   }
 
   _destroy(err, cb) {
-    if (this._state & constants.state.CLOSING) return cb(err)
-    this._state |= constants.state.CLOSING
+    if (this._state & constants.state.CLOSED) return cb(err)
 
     this._pendingDestroy = cb
+
+    this._close()
+  }
+
+  _close() {
+    if (this._state & constants.state.CLOSING) return
+    this._state |= constants.state.CLOSING
 
     binding.close(this._handle)
 
@@ -228,13 +242,22 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   }
 
   _onclose() {
+    this._state |= constants.state.CLOSED
+
     this._continueDestroy()
   }
 
   _onresize() {
-    this._size = this.getWindowSize()
+    let changed
 
-    this.emit('resize')
+    try {
+      changed = this._refreshSize()
+    } catch (err) {
+      this.emit('error', err)
+      return
+    }
+
+    if (changed) this.emit('resize')
   }
 
   static _streams = new Set()

@@ -128,3 +128,29 @@ test('write stream, window size after close', { skip: !tty.isTTY(1) }, async (t)
   // Cached, so it stays readable after close rather than throwing.
   t.is(stream.columns, columns)
 })
+
+test('write stream, window size is not aliased', { skip: !tty.isTTY(1) }, async (t) => {
+  const stream = new tty.WriteStream(1)
+
+  const size = stream.getWindowSize()
+
+  t.not(size, stream.getWindowSize(), 'a fresh array each call')
+
+  size[0] = -1
+
+  t.not(stream.columns, -1, 'the caller cannot write through to the cached size')
+
+  stream.destroy()
+
+  await new Promise((resolve) => stream.on('close', resolve))
+})
+
+test('write stream, ending reaches close', { skip: !tty.isTTY(1) }, (t) => {
+  t.plan(1)
+
+  const stream = new tty.WriteStream(1)
+
+  // Ending and destroying take different routes to `_destroy()`, and both have
+  // to wait for the handle to close before the stream settles.
+  stream.on('close', () => t.pass('closed')).end()
+})
