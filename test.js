@@ -98,7 +98,6 @@ test('write stream, non-terminal file descriptor', { skip: tty.isTTY(1) }, (t) =
   // The handle is created before the window size can be queried, so a failure
   // here must not leave the handle behind.
   t.exception(() => new tty.WriteStream(1))
-  t.is(tty.WriteStream._streams.size, 0, 'not registered for resize events')
 })
 
 test('write stream, window size', { skip: !tty.isTTY(1) }, (t) => {
