@@ -23,7 +23,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
 
     this._pendingDestroy = null
 
-    this._handle = binding.init(fd, this._buffer, this, noop, this._onread, this._onclose)
+    this._handle = binding.init(fd, this._buffer, this, noop, this._onread, this._onclose, false)
   }
 
   get fd() {
@@ -130,7 +130,7 @@ exports.WriteStream = class TTYWriteStream extends Writable {
     this._pendingWriteBatch = null
     this._pendingDestroy = null
 
-    this._handle = binding.init(fd, empty, this, this._onwrite, noop, this._onclose)
+    this._handle = binding.init(fd, empty, this, this._onwrite, noop, this._onclose, true)
 
     try {
       this._refreshSize()

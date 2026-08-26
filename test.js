@@ -1,4 +1,5 @@
 const test = require('brittle')
+const { spawn } = require('bare-subprocess')
 const tty = require('.')
 
 // A read stream can be opened on a pipe as well as a terminal, but not on a
@@ -153,4 +154,50 @@ test('write stream, ending reaches close', { skip: !tty.isTTY(1) }, (t) => {
   // Ending and destroying take different routes to `_destroy()`, and both have
   // to wait for the handle to close before the stream settles.
   stream.on('close', () => t.pass('closed')).end()
+})
+
+test('read stream, a read that fills the buffer leaves the loop running', async (t) => {
+  // A read stream may be opened on a pipe, so this needs no terminal and runs
+  // everywhere. The child reads exactly one buffer's worth and then has to get
+  // back to its timer: if the descriptor were blocking, libuv would follow the
+  // full read with another one and stall the loop inside it.
+  const readBufferSize = 64
+
+  const child = spawn(
+    Bare.argv[0],
+    [
+      '-e',
+      `
+      const tty = require(${JSON.stringify(require.resolve('.'))})
+
+      const stdin = new tty.ReadStream(0, { readBufferSize: ${readBufferSize} })
+
+      stdin.on('data', () => {})
+
+      setTimeout(() => {
+        stdin.destroy()
+
+        Bare.exit(42)
+      }, 500)
+      `
+    ],
+    { stdio: ['pipe', 'ignore', 'inherit'] }
+  )
+
+  // The child closes its end as it exits, so the pipe may break under us.
+  child.stdin.on('error', () => {})
+
+  // Fill the read buffer exactly, and leave the pipe open so no end-of-file
+  // arrives to release a blocking read.
+  child.stdin.write(Buffer.alloc(readBufferSize, 0x2e))
+
+  const timer = setTimeout(() => child.kill(), 10000)
+
+  const code = await new Promise((resolve) => child.on('exit', resolve))
+
+  clearTimeout(timer)
+
+  child.stdin.destroy()
+
+  t.is(code, 42, 'the child reached its timer instead of stalling')
 })

@@ -51,6 +51,7 @@
     "bare-stream": "^2.0.0"
   },
   "devDependencies": {
+    "bare-subprocess": "^6.0.0",
     "brittle": "^3.2.1",
     "cmake-bare": "^1.1.6",
     "lunte": "^1.8.0",
