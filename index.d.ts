@@ -1,5 +1,10 @@
 import { Readable, ReadableOptions, Writable, WritableEvents, WritableOptions } from 'bare-stream'
 import constants from './lib/constants'
+import TTYError from './lib/errors'
+
+interface ReadStreamOptions extends ReadableOptions {
+  readBufferSize?: number
+}
 
 interface ReadStream extends Readable {
   /** The stream's underlying file descriptor. */
@@ -18,7 +23,7 @@ interface ReadStream extends Readable {
 
 declare class ReadStream extends Readable {
   /** Create a `ReadStream` for the TTY file descriptor `fd`. */
-  constructor(fd: number, opts?: ReadableOptions)
+  constructor(fd: number, opts?: ReadStreamOptions)
 }
 
 interface WriteStreamEvents extends WritableEvents {
@@ -50,4 +55,13 @@ declare class WriteStream<M extends WriteStreamEvents = WriteStreamEvents> exten
  */
 declare function isTTY(fd: number): boolean
 
-export { ReadStream, WriteStream, isTTY, isTTY as isatty, constants }
+export {
+  type ReadStreamOptions,
+  ReadStream,
+  WriteStream,
+  isTTY,
+  isTTY as isatty,
+  constants,
+  type TTYError,
+  TTYError as errors
+}
