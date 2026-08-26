@@ -164,8 +164,6 @@ exports.WriteStream = class TTYWriteStream extends Writable {
   getWindowSize() {
     this._alive()
 
-    this._refreshSize()
-
     return [this._size[0], this._size[1]]
   }
 
