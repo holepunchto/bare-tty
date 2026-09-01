@@ -16,6 +16,10 @@ const stdout = new tty.WriteStream(1)
 stdout.write('Hello world!\n')
 ```
 
+## API
+
+See the [`bare-tty` reference](https://docs.pears.com/reference/bare/modules/bare-tty).
+
 ## License
 
 Apache-2.0
