@@ -6,7 +6,12 @@ const errors = require('./lib/errors')
 
 const defaultReadBufferSize = 65536
 const empty = Buffer.alloc(0)
-const modes = new Set([constants.mode.NORMAL, constants.mode.RAW, constants.mode.IO])
+const modes = new Set([
+  constants.mode.NORMAL,
+  constants.mode.RAW,
+  constants.mode.RAW_VT,
+  constants.mode.IO
+])
 
 exports.ReadStream = class TTYReadStream extends Readable {
   constructor(fd, opts = {}) {
