@@ -9,7 +9,6 @@ typedef struct {
 
   struct {
     uv_write_t write;
-    uv_shutdown_t shutdown;
   } requests;
 
   uv_buf_t read;
@@ -192,13 +191,13 @@ static js_value_t *
 bare_tty_init(js_env_t *env, js_callback_info_t *info) {
   int err;
 
-  size_t argc = 6;
-  js_value_t *argv[6];
+  size_t argc = 7;
+  js_value_t *argv[7];
 
   err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
   assert(err == 0);
 
-  assert(argc == 6);
+  assert(argc == 7);
 
   uv_loop_t *loop;
   err = js_get_env_loop(env, &loop);
@@ -217,21 +216,32 @@ bare_tty_init(js_env_t *env, js_callback_info_t *info) {
   err = uv_tty_init(loop, &tty->handle, fd, 1);
 
   if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    assert(err == 0);
+
     return NULL;
   }
 
-  err = uv_stream_set_blocking((uv_stream_t *) &tty->handle, true);
+  bool blocking;
+  err = js_get_value_bool(env, argv[6], &blocking);
+  assert(err == 0);
 
-  // Not all platforms support blocking TTY handles.
-  (void) err;
+  if (blocking) {
+    err = uv_stream_set_blocking((uv_stream_t *) &tty->handle, true);
+
+    // Not all platforms support blocking TTY handles.
+    (void) err;
+  }
 
   tty->env = env;
   tty->closing = false;
   tty->exiting = false;
 
-  err = js_get_typedarray_info(env, argv[1], NULL, (void **) &tty->read.base, (size_t *) &tty->read.len, NULL, NULL);
+  size_t read_len;
+  err = js_get_typedarray_info(env, argv[1], NULL, (void **) &tty->read.base, &read_len, NULL, NULL);
   assert(err == 0);
+
+  tty->read.len = read_len;
 
   err = js_create_reference(env, argv[2], 1, &tty->ctx);
   assert(err == 0);
@@ -277,18 +287,31 @@ bare_tty_writev(js_env_t *env, js_callback_info_t *info) {
 
   js_value_t **elements = malloc(sizeof(js_value_t *) * bufs_len);
 
+  if ((bufs == NULL || elements == NULL) && bufs_len > 0) {
+    free(bufs);
+    free(elements);
+
+    err = js_throw_error(env, uv_err_name(UV_ENOMEM), uv_strerror(UV_ENOMEM));
+    assert(err == 0);
+
+    return NULL;
+  }
+
   uint32_t fetched;
   err = js_get_array_elements(env, arr, elements, bufs_len, 0, &fetched);
   assert(err == 0);
   assert(fetched == bufs_len);
 
-
   for (uint32_t i = 0; i < bufs_len; i++) {
     js_value_t *item = elements[i];
 
     uv_buf_t *buf = &bufs[i];
-    err = js_get_typedarray_info(env, item, NULL, (void **) &buf->base, (size_t *) &buf->len, NULL, NULL);
+
+    size_t buf_len;
+    err = js_get_typedarray_info(env, item, NULL, (void **) &buf->base, &buf_len, NULL, NULL);
     assert(err == 0);
+
+    buf->len = buf_len;
   }
 
   free(elements);
@@ -302,7 +325,9 @@ bare_tty_writev(js_env_t *env, js_callback_info_t *info) {
   free(bufs);
 
   if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    assert(err == 0);
+
     return NULL;
   }
 
@@ -328,7 +353,9 @@ bare_tty_resume(js_env_t *env, js_callback_info_t *info) {
   err = uv_read_start((uv_stream_t *) &tty->handle, bare_tty__on_alloc, bare_tty__on_read);
 
   if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    assert(err == 0);
+
     return NULL;
   }
 
@@ -354,7 +381,9 @@ bare_tty_pause(js_env_t *env, js_callback_info_t *info) {
   err = uv_read_stop((uv_stream_t *) &tty->handle);
 
   if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    assert(err == 0);
+
     return NULL;
   }
 
@@ -376,6 +405,8 @@ bare_tty_close(js_env_t *env, js_callback_info_t *info) {
   bare_tty_t *tty;
   err = js_get_arraybuffer_info(env, argv[0], (void **) &tty, NULL);
   assert(err == 0);
+
+  if (tty->closing) return NULL;
 
   err = uv_tty_set_mode(&tty->handle, UV_TTY_MODE_NORMAL);
 
@@ -413,7 +444,9 @@ bare_tty_set_mode(js_env_t *env, js_callback_info_t *info) {
   err = uv_tty_set_mode(&tty->handle, mode);
 
   if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    assert(err == 0);
+
     return NULL;
   }
 
@@ -440,7 +473,9 @@ bare_tty_get_window_size(js_env_t *env, js_callback_info_t *info) {
   err = uv_tty_get_winsize(&tty->handle, &width, &height);
 
   if (err < 0) {
-    js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    err = js_throw_error(env, uv_err_name(err), uv_strerror(err));
+    assert(err == 0);
+
     return NULL;
   }
 
