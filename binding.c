@@ -557,6 +557,7 @@ bare_tty_exports(js_env_t *env, js_value_t *exports) {
 
   V("MODE_NORMAL", UV_TTY_MODE_NORMAL)
   V("MODE_RAW", UV_TTY_MODE_RAW)
+  V("MODE_RAW_VT", UV_TTY_MODE_RAW_VT)
 #ifndef _WIN32
   V("MODE_IO", UV_TTY_MODE_IO)
 #endif

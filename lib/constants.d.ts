@@ -3,7 +3,7 @@
  * and `mode.RAW`.
  */
 declare const constants: {
-  mode: { NORMAL: number; RAW: number; IO: number }
+  mode: { NORMAL: number; RAW: number; RAW_VT: number; IO: number }
   state: { READING: number; CLOSING: number; CLOSED: number }
 }
 
