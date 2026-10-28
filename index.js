@@ -36,12 +36,7 @@ exports.ReadStream = class TTYReadStream extends Readable {
   }
 
   setRawMode(enabled) {
-    if (!enabled) return this.setMode(constants.mode.NORMAL)
-    // On Windows, RAW leaves libuv translating console records itself and never
-    // emits \x1b[Z for Shift+Tab; RAW_VT sets ENABLE_VIRTUAL_TERMINAL_INPUT so
-    // the console emits real VT sequences. Other platforms already work on RAW.
-    const raw = Bare.platform === 'win32' ? constants.mode.RAW_VT : constants.mode.RAW
-    return this.setMode(raw)
+    return this.setMode(enabled ? constants.mode.RAW_VT : constants.mode.NORMAL)
   }
 
   _read() {
